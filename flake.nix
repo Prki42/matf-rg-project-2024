@@ -23,9 +23,11 @@
           libGL
           mesa
 
-          # imgui needs these to compile :(
           libx11
           libxrandr
+          libxinerama
+          libxcursor
+          libxi
 
           wayland
           wayland-protocols
@@ -49,8 +51,16 @@
           pkgs.wayland
           pkgs.libxkbcommon
           pkgs.libdecor
+          pkgs.libx11
+          pkgs.libxrandr
+          pkgs.libxcursor
+          pkgs.libxi
         ];
 
+        shellHook = ''
+          export SHELL=$(getent passwd $USER | cut -d: -f7)
+          exec $SHELL
+        '';
       };
     };
 }
