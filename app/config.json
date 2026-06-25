@@ -1,11 +1,28 @@
 {
   "resources": {
     "models": {
+      "turret": {
+        "path": "turret/turret.obj",
+        "flip_uvs": true
+      },
+      "cube": {
+        "path": "cube/cube.obj",
+        "flip_uvs": true
+      },
+      "wheatley": {
+        "path": "wheatley/wheatley.obj",
+        "flip_uvs": true
+      },
+      "room": {
+        "path": "room/room.obj",
+        "flip_uvs": true
+      }
     }
   },
   "window": {
     "height": 600,
-    "title": "Hello, window!",
+    "title": "Portal 3",
     "width": 800
   }
 }
+
