@@ -1,0 +1,88 @@
+# Blender 5.2.0 LTS MTL File: 'room.blend'
+# www.blender.org
+
+newmtl Dark
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd dark_material.png
+map_Ke Floor_emissive.jpeg
+map_Bump -bm 1.000000 Dark_normal.png
+
+newmtl Display
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd white_light.png
+map_Ke Display_emissive.png
+
+newmtl Floor
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd Floor_baseColor.jpeg
+map_Ke Floor_emissive.jpeg
+map_Bump -bm 1.000000 Floor_normal.jpeg
+
+newmtl Glass
+Ns 810.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 0.250000
+illum 9
+map_Kd glass_white.png
+map_Bump -bm 0.750000 Glass_normal.png
+
+newmtl Laser
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Ke Laser_emissive.jpeg
+map_Kd Laser_baseColor.png
+
+newmtl Light
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd white_light.png
+map_Ke Light_emissive.png
+
+newmtl Room
+Ns 62.500000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd White_baseColor.jpeg
+map_Ke Floor_emissive.jpeg
+map_Bump -bm 1.000000 White_normal.jpeg
+
+newmtl White
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd White_baseColor.jpeg
+map_Ke Floor_emissive.jpeg
+map_Bump -bm 0.500000 White_normal.jpeg
