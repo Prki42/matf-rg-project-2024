@@ -78,7 +78,11 @@ public:
     * @param flip_uvs flip_uvs on load.
     * @returns OpenGL id of a texture object.
     */
-    static uint32_t generate_texture(const std::filesystem::path &path, bool flip_uvs);
+    static uint32_t generate_texture(const std::filesystem::path &path, bool flip_uvs, bool srgb = false);
+
+    static uint32_t generate_color_texture(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+
+    static uint32_t generate_normal_from_height(const std::filesystem::path &path, bool flip_uvs, float strength = 4.0f);
 
     /**
     * @brief Get texture format for a `number_of_channels`.

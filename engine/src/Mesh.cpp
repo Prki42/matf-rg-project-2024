@@ -36,10 +36,13 @@ Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &ind
     CHECKED_GL_CALL(glVertexAttribPointer, 2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, TexCoords));
 
     CHECKED_GL_CALL(glEnableVertexAttribArray, 3);
-    CHECKED_GL_CALL(glVertexAttribPointer, 3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, Tangent));
+    CHECKED_GL_CALL(glVertexAttribPointer, 3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, TexCoords2));
 
     CHECKED_GL_CALL(glEnableVertexAttribArray, 4);
-    CHECKED_GL_CALL(glVertexAttribPointer, 4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, Bitangent));
+    CHECKED_GL_CALL(glVertexAttribPointer, 4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, Tangent));
+
+    CHECKED_GL_CALL(glEnableVertexAttribArray, 5);
+    CHECKED_GL_CALL(glVertexAttribPointer, 5, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *) offsetof(Vertex, Bitangent));
 
     CHECKED_GL_CALL(glBindVertexArray, 0);
     // NOLINTEND
@@ -59,6 +62,8 @@ void Mesh::draw(const Shader *shader) {
         const auto count = (counts[texture_type] += 1);
         uniform_name.append(std::to_string(count));
         shader->set_int(uniform_name, i);
+        std::string uv_uniform = uniform_name + "_uv";
+        shader->set_int(uv_uniform, static_cast<int>(m_textures[i]->uv_index()));
         CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, m_textures[i]->id());
         uniform_name.clear();
     }

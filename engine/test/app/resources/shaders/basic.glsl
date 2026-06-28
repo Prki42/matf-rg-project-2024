@@ -31,5 +31,11 @@ in vec2 TexCoords;
 uniform sampler2D texture_diffuse1;
 
 void main() {
-    FragColor = vec4(texture(texture_diffuse1, TexCoords).rgb, 1.0);
+    vec3 result = texture(texture_diffuse1, TexCoords).rgb;
+
+    // gamma correction
+    result = pow(result, vec3(1.0 / 2.2));
+
+    FragColor = vec4(result, 1.0);
+
 }

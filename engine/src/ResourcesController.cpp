@@ -7,7 +7,6 @@
 #include <engine/util/Configuration.hpp>
 #include <engine/util/Errors.hpp>
 #include <spdlog/spdlog.h>
-#include <unordered_set>
 #include <utility>
 
 namespace engine::resources {
@@ -144,12 +143,31 @@ Model *ResourcesController::model(const std::string &name) {
     return result.get();
 }
 
-Texture *ResourcesController::texture(const std::string &name, const std::filesystem::path &path, TextureType type, bool flip_uvs) {
+Texture *ResourcesController::texture(const std::string &name, const std::filesystem::path &path, TextureType type, bool flip_uvs, uint32_t uv_index, bool srgb) {
     auto &result = m_textures[name];
     if (!result) {
         spdlog::info("load_texture(path={})", path.string());
-        auto texture = graphics::OpenGL::generate_texture(path, flip_uvs);
-        result = std::make_unique<Texture>(Texture(texture, type, path, path.stem()));
+        auto texture = graphics::OpenGL::generate_texture(path, flip_uvs, srgb);
+        result = std::make_unique<Texture>(Texture(texture, type, path, path.stem(), uv_index));
+    }
+    return result.get();
+}
+
+Texture *ResourcesController::normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs, uint32_t uv_index, float strength) {
+    auto &result = m_textures[name];
+    if (!result) {
+        spdlog::info("load_height_to_normal(path={}, strength={})", path.string(), strength);
+        auto texture_id = graphics::OpenGL::generate_normal_from_height(path, flip_uvs, strength);
+        result = std::make_unique<Texture>(Texture(texture_id, TextureType::Normal, path, path.stem(), uv_index));
+    }
+    return result.get();
+}
+
+Texture *ResourcesController::color_texture(const std::string &name, uint8_t r, uint8_t g, uint8_t b, TextureType type) {
+    auto &result = m_textures[name];
+    if (!result) {
+        auto texture_id = graphics::OpenGL::generate_color_texture(r, g, b);
+        result = std::make_unique<Texture>(Texture(texture_id, type, "", name));
     }
     return result.get();
 }
@@ -217,6 +235,13 @@ void AssimpSceneProcessor::process_mesh(aiMesh *mesh) {
             vertex.Bitangent.y = mesh->mBitangents[i].y;
             vertex.Bitangent.z = mesh->mBitangents[i].z;
         }
+
+        if (mesh->mTextureCoords[1]) {
+            vertex.TexCoords2.x = mesh->mTextureCoords[1][i].x;
+            vertex.TexCoords2.y = mesh->mTextureCoords[1][i].y;
+        } else if (mesh->mTextureCoords[0]) {
+            vertex.TexCoords2 = vertex.TexCoords;
+        }
         vertices.push_back(vertex);
     }
 
@@ -246,6 +271,38 @@ std::vector<Texture *> AssimpSceneProcessor::process_materials(const aiMaterial 
     for (auto ai_texture_type: ai_texture_types) {
         process_material_type(textures, material, ai_texture_type);
     }
+
+    bool has_diffuse = false;
+    for (auto *tex: textures) {
+        if (tex->type() == TextureType::Diffuse) {
+            has_diffuse = true;
+            break;
+        }
+    }
+    if (!has_diffuse) {
+        aiColor3D color(1.0f, 1.0f, 1.0f);
+        material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
+        aiString mat_name;
+        material->Get(AI_MATKEY_NAME, mat_name);
+
+        std::string name = std::string("_generated_diffuse_") + mat_name.C_Str();
+
+        Texture *texture = m_resources_controller->color_texture(name,
+                                                                 static_cast<uint8_t>(color.r * 255),
+                                                                 static_cast<uint8_t>(color.g * 255),
+                                                                 static_cast<uint8_t>(color.b * 255));
+        textures.insert(textures.begin(), texture);
+    }
+
+    bool has_normal = false;
+    for (auto *tex: textures) {
+        if (tex->type() == TextureType::Normal) has_normal = true;
+    }
+    if (!has_normal) {
+        textures.push_back(m_resources_controller->color_texture(
+                "_flat_normal", 128, 128, 255, TextureType::Normal));
+    }
+
     return textures;
 }
 
@@ -253,9 +310,18 @@ void AssimpSceneProcessor::process_material_type(std::vector<Texture *> &texture
     auto material_count = material->GetTextureCount(type);
     for (uint32_t i = 0; i < material_count; ++i) {
         aiString ai_texture_path_string;
-        material->GetTexture(type, i, &ai_texture_path_string);
+        unsigned int uv_index = 0;
+        material->GetTexture(type, i, &ai_texture_path_string, nullptr, &uv_index);
         std::filesystem::path texture_path = m_model_path.parent_path() / ai_texture_path_string.C_Str();
-        Texture *texture = m_resources_controller->texture(texture_path.string(), texture_path, assimp_texture_type_to_engine(type));
+        Texture *texture;
+        if (type == aiTextureType_HEIGHT) {
+            float bump_strength = 4.0f;
+            material->Get(AI_MATKEY_BUMPSCALING, bump_strength);
+            texture = m_resources_controller->normal_from_height(texture_path.string(), texture_path, false, uv_index, bump_strength);
+        } else {
+            bool srgb = (type == aiTextureType_DIFFUSE);
+            texture = m_resources_controller->texture(texture_path.string(), texture_path, assimp_texture_type_to_engine(type), false, uv_index, srgb);
+        }
         textures.emplace_back(texture);
     }
 }
@@ -264,7 +330,8 @@ TextureType AssimpSceneProcessor::assimp_texture_type_to_engine(aiTextureType ty
     switch (type) {
         case aiTextureType_DIFFUSE: return TextureType::Diffuse;
         case aiTextureType_SPECULAR: return TextureType::Specular;
-        case aiTextureType_HEIGHT: return TextureType::Height;
+        // height maps get converted to normals
+        case aiTextureType_HEIGHT: return TextureType::Normal;
         case aiTextureType_NORMALS: return TextureType::Normal;
         default: RG_SHOULD_NOT_REACH_HERE("Engine currently doesn't support the aiTextureType: {}", static_cast<int>(type));
     }

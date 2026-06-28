@@ -1,8 +1,8 @@
 
 // clang-format off
+#include "spdlog/spdlog.h"
 #include <glad/glad.h>
 // clang-format on
-#include <array>
 #include <engine/graphics/OpenGL.hpp>
 #include <engine/resources/Shader.hpp>
 #include <engine/resources/ShaderCompiler.hpp>
@@ -22,7 +22,7 @@ int32_t OpenGL::shader_type_to_opengl_type(resources::ShaderType type) {
     }
 }
 
-uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_uvs) {
+uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_uvs, bool srgb) {
     uint32_t texture_id = 0;
     CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
 
@@ -34,9 +34,15 @@ uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_u
     };
     if (data) {
         int32_t format = texture_format(nr_components);
+        int32_t internal_format = format;
+        if (srgb) {
+            if (nr_components == 4) internal_format = GL_SRGB8_ALPHA8;
+            else if (nr_components == 3)
+                internal_format = GL_SRGB8;
+        }
 
         CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
-        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         CHECKED_GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
 
         CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -50,9 +56,76 @@ uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_u
     return texture_id;
 }
 
+uint32_t OpenGL::generate_normal_from_height(const std::filesystem::path &path, bool flip_uvs, float strength) {
+    int32_t width, height, nr_components;
+    stbi_set_flip_vertically_on_load(flip_uvs);
+    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 1);
+    defer {
+        stbi_image_free(data);
+    };
+    if (!data) {
+        throw util::EngineError(util::EngineError::Type::AssetLoadingError,
+                                std::format("Failed to load height map {}", path.string()));
+    }
+
+    auto *normals = new uint8_t[width * height * 3];
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // height values around (x,y)
+            int left = data[y * width + ((x - 1 + width) % width)];
+            int right = data[y * width + ((x + 1) % width)];
+            int down = data[((y - 1 + height) % height) * width + x];
+            int up = data[((y + 1) % height) * width + x];
+
+            // changes in height
+            float dx = static_cast<float>(left - right) / 255.0f;
+            float dy = static_cast<float>(down - up) / 255.0f;
+
+            float dz = 1.0f / strength;
+
+            // normalize
+            float len = std::sqrt(dx * dx + dy * dy + dz * dz);
+            dx /= len;
+            dy /= len;
+            dz /= len;
+
+            int i = (y * width + x) * 3;
+            normals[i + 0] = static_cast<uint8_t>((dx * 0.5f + 0.5f) * 255.0f);
+            normals[i + 1] = static_cast<uint8_t>((dy * 0.5f + 0.5f) * 255.0f);
+            normals[i + 2] = static_cast<uint8_t>((dz * 0.5f + 0.5f) * 255.0f);
+        }
+    }
+
+    uint32_t texture_id = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, normals);
+    CHECKED_GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    delete[] normals;
+    return texture_id;
+}
+
+uint32_t OpenGL::generate_color_texture(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    spdlog::info("GENERATING COLOR: {}, {}, {}", r, g, b);
+    uint32_t texture_id = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
+    uint8_t pixels[4] = {r, g, b, a};
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    return texture_id;
+}
+
 int32_t OpenGL::texture_format(int32_t number_of_channels) {
     switch (number_of_channels) {
         case 1: return GL_RED;
+        case 2: return GL_RG;
         case 3: return GL_RGB;
         case 4: return GL_RGBA;
         default: RG_SHOULD_NOT_REACH_HERE("Unknown channels {}", number_of_channels);

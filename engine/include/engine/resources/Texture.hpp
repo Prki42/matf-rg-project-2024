@@ -21,7 +21,6 @@ enum class TextureType {
     Diffuse,
     Specular,
     Normal,
-    Height,
 };
 
 /**
@@ -69,6 +68,14 @@ public:
     }
 
     /**
+    * @brief Returns the UV index of the texture.
+    * @returns The UV index of the texture.
+    */
+    uint32_t uv_index() const {
+        return m_uv_index;
+    }
+
+    /**
     * @brief Binds the texture to a given sampler.
     * @param sampler The sampler to bind the texture to.
     */
@@ -99,18 +106,21 @@ private:
     * @param type The type of the texture.
     * @param path The path to the texture file.
     * @param name The name of the texture.
+    * @param uv_index The UV index of the texture.
     */
-    Texture(uint32_t id, TextureType type, std::filesystem::path path, std::string name)
+    Texture(uint32_t id, TextureType type, std::filesystem::path path, std::string name, uint32_t uv_index = 0)
         : m_id(id)
         , m_type(type)
         , m_path(std::move(path))
-        , m_name(std::move(name)) {
+        , m_name(std::move(name))
+        , m_uv_index(uv_index) {
     }
 
     uint32_t m_id{};
     TextureType m_type{};
     std::filesystem::path m_path{};
     std::string m_name{};
+    uint32_t m_uv_index{0};
 };
 }// namespace engine::resources
 #endif//MATF_RG_PROJECT_TEXTURE_HPP
