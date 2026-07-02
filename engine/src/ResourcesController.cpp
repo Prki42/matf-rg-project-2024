@@ -99,9 +99,9 @@ public:
     }
 
 private:
-    void process_node(const aiNode *node);
+    void process_node(const aiNode *node, aiMatrix4x4 parent_transform);
 
-    void process_mesh(aiMesh *mesh);
+    void process_mesh(aiMesh *mesh, const aiMatrix4x4 &transform);
 
     std::vector<Texture *> process_materials(const aiMaterial *material);
 
@@ -194,46 +194,57 @@ Shader *ResourcesController::shader(const std::string &name, const std::filesyst
 
 std::vector<Mesh> AssimpSceneProcessor::process_meshes() {
     m_meshes.clear();
-    process_node(m_scene->mRootNode);
+    process_node(m_scene->mRootNode, aiMatrix4x4());
     return std::move(m_meshes);
 }
 
-void AssimpSceneProcessor::process_node(const aiNode *node) {
+void AssimpSceneProcessor::process_node(const aiNode *node, aiMatrix4x4 parent_transform) {
+    aiMatrix4x4 transform = parent_transform * node->mTransformation;
     for (uint32_t i = 0; i < node->mNumMeshes; ++i) {
         auto mesh = m_scene->mMeshes[node->mMeshes[i]];
-        process_mesh(mesh);
+        process_mesh(mesh, transform);
     }
     for (uint32_t i = 0; i < node->mNumChildren; ++i) {
-        process_node(node->mChildren[i]);
+        process_node(node->mChildren[i], transform);
     }
 }
 
-void AssimpSceneProcessor::process_mesh(aiMesh *mesh) {
+void AssimpSceneProcessor::process_mesh(aiMesh *mesh, const aiMatrix4x4 &transform) {
+    aiMatrix3x3 normal_matrix(transform);
+    normal_matrix.Inverse().Transpose();
+
     std::vector<Vertex> vertices;
     vertices.reserve(mesh->mNumVertices);
     for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
         Vertex vertex{};
-        vertex.Position.x = mesh->mVertices[i].x;
-        vertex.Position.y = mesh->mVertices[i].y;
-        vertex.Position.z = mesh->mVertices[i].z;
+        aiVector3D pos = transform * mesh->mVertices[i];
+        vertex.Position.x = pos.x;
+        vertex.Position.y = pos.y;
+        vertex.Position.z = pos.z;
 
         if (mesh->HasNormals()) {
-            vertex.Normal.x = mesh->mNormals[i].x;
-            vertex.Normal.y = mesh->mNormals[i].y;
-            vertex.Normal.z = mesh->mNormals[i].z;
+            aiVector3D norm = normal_matrix * mesh->mNormals[i];
+            norm.Normalize();
+            vertex.Normal.x = norm.x;
+            vertex.Normal.y = norm.y;
+            vertex.Normal.z = norm.z;
         }
 
         if (mesh->mTextureCoords[0]) {
             vertex.TexCoords.x = mesh->mTextureCoords[0][i].x;
             vertex.TexCoords.y = mesh->mTextureCoords[0][i].y;
 
-            vertex.Tangent.x = mesh->mTangents[i].x;
-            vertex.Tangent.y = mesh->mTangents[i].y;
-            vertex.Tangent.z = mesh->mTangents[i].z;
+            aiVector3D tan = normal_matrix * mesh->mTangents[i];
+            tan.Normalize();
+            vertex.Tangent.x = tan.x;
+            vertex.Tangent.y = tan.y;
+            vertex.Tangent.z = tan.z;
 
-            vertex.Bitangent.x = mesh->mBitangents[i].x;
-            vertex.Bitangent.y = mesh->mBitangents[i].y;
-            vertex.Bitangent.z = mesh->mBitangents[i].z;
+            aiVector3D bitan = normal_matrix * mesh->mBitangents[i];
+            bitan.Normalize();
+            vertex.Bitangent.x = bitan.x;
+            vertex.Bitangent.y = bitan.y;
+            vertex.Bitangent.z = bitan.z;
         }
 
         if (mesh->mTextureCoords[1]) {
