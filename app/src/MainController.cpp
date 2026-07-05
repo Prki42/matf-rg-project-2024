@@ -1,6 +1,5 @@
 #include "MainController.hpp"
 #include "glm/fwd.hpp"
-#include "glm/trigonometric.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/platform/PlatformController.hpp>
@@ -11,7 +10,7 @@
 namespace app {
 
 void MainPlatformEventObserver::on_key(engine::platform::Key key) {
-    spdlog::info("Keyboard event: key={}, state={}", key.name(), key.state_str());
+    // spdlog::info("Keyboard event: key={}, state={}", key.name(), key.state_str());
 }
 
 void MainController::initialize() {
@@ -63,10 +62,11 @@ void MainController::draw_room() {
     shader->set_mat4("view", graphics->camera()->view_matrix());
 
     auto model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
-    model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     shader->set_mat4("model", model);
+    shader->set_vec3("viewPos", graphics->camera()->Position);
+    shader->set_vec3("lightPos", glm::vec3(0.0f, 4.0f, 0.0f));
+    shader->set_vec3("lightColor", glm::vec3(0.6f, 0.6f, 0.6f));
     room->draw(shader);
 }
 
