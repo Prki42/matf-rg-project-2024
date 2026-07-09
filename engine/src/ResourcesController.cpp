@@ -329,8 +329,15 @@ std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMateria
                             0});
     }
     if (!has_specular) {
-        textures.push_back({m_resources_controller->color_texture(
-                                    "_default_specular", 0, 0, 0, TextureType::Specular),
+        aiColor3D spec_color(0.0f, 0.0f, 0.0f);
+        material->Get(AI_MATKEY_COLOR_SPECULAR, spec_color);
+        aiString mat_name;
+        material->Get(AI_MATKEY_NAME, mat_name);
+        std::string name = std::string("_generated_specular_") + mat_name.C_Str();
+        textures.push_back({m_resources_controller->color_texture(name,
+                                                                  static_cast<uint8_t>(spec_color.r * 255),
+                                                                  static_cast<uint8_t>(spec_color.g * 255),
+                                                                  static_cast<uint8_t>(spec_color.b * 255), TextureType::Specular),
                             0});
     }
     if (!has_emissive) {
