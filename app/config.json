@@ -8,6 +8,10 @@
       "room": {
         "path": "room/scene.gltf",
         "flip_uvs": true
+      },
+      "wheatley": {
+        "path": "wheatley/wheatley.obj",
+        "flip_uvs": true
       }
     }
   },

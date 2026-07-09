@@ -57,17 +57,53 @@ void MainController::draw_room() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     auto shader = engine::core::Controller::get<engine::resources::ResourcesController>()->shader("basic");
     auto room = engine::core::Controller::get<engine::resources::ResourcesController>()->model("room");
+    auto cube = engine::core::Controller::get<engine::resources::ResourcesController>()->model("cube");
+    auto moron = engine::core::Controller::get<engine::resources::ResourcesController>()->model("wheatley");
+
     shader->use();
-    shader->set_mat4("projection", graphics->projection_matrix());
-    shader->set_mat4("view", graphics->camera()->view_matrix());
 
     auto model = glm::mat4(1.0f);
 
+    shader->set_mat4("projection", graphics->projection_matrix());
+    shader->set_mat4("view", graphics->camera()->view_matrix());
     shader->set_mat4("model", model);
     shader->set_vec3("viewPos", graphics->camera()->Position);
-    shader->set_vec3("lightPos", glm::vec3(0.0f, 4.0f, 0.0f));
-    shader->set_vec3("lightColor", glm::vec3(0.6f, 0.6f, 0.6f));
+
+    shader->set_int("numPointLights", 2);
+    shader->set_vec3("pointLights[0].position", glm::vec3(0.0f, 4.0f, 0.0f));
+    shader->set_vec3("pointLights[0].color", glm::vec3(0.6f, 0.6f, 1.0f));
+    shader->set_float("pointLights[0].constant", 1.0f);
+    shader->set_float("pointLights[0].linear", 0.009f);
+    shader->set_float("pointLights[0].quadratic", 0.032f);
+
+    shader->set_vec3("pointLights[1].position", glm::vec3(3.0f, 2.0f, 3.0f));
+    shader->set_vec3("pointLights[1].color", glm::vec3(1.0f, 0.5f, 0.2f));
+    shader->set_float("pointLights[1].constant", 1.0f);
+    shader->set_float("pointLights[1].linear", 0.009f);
+    shader->set_float("pointLights[1].quadratic", 0.032f);
+
+    shader->set_int("numSpotLights", 1);
+    shader->set_vec3("spotLights[0].position", glm::vec3(0.0f, 5.0f, 0.0f));
+    shader->set_vec3("spotLights[0].direction", glm::vec3(0.0f, -1.0f, 0.0f));
+    shader->set_vec3("spotLights[0].color", glm::vec3(1.0f, 1.0f, 1.0f));
+    shader->set_float("spotLights[0].cutOff", glm::cos(glm::radians(15.0f)));
+    shader->set_float("spotLights[0].outerCutOff", glm::cos(glm::radians(20.0f)));
+    shader->set_float("spotLights[0].constant", 1.0f);
+    shader->set_float("spotLights[0].linear", 0.09f);
+    shader->set_float("spotLights[0].quadratic", 0.032f);
+
     room->draw(shader);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(1.0f, 0.7f, 2.0f));
+    shader->set_mat4("model", model);
+    cube->draw(shader);
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(1.0f, 0.7f, 4.0f));
+    model = glm::scale(model, glm::vec3(0.05));
+    shader->set_mat4("model", model);
+    moron->draw(shader);
 }
 
 void MainController::update_camera() {

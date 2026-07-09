@@ -42,12 +42,76 @@ in vec3 FragPos;
 in mat3 TBN;
 
 uniform sampler2D texture_diffuse1;
+uniform sampler2D texture_specular1;
 uniform sampler2D texture_normal1;
+uniform sampler2D texture_emissive1;
 uniform int texture_normal1_uv;
+uniform int texture_specular1_uv;
+uniform int texture_emissive1_uv;
+uniform vec3 emissiveFactor;
+uniform float shininess;
+
+#define MAX_POINT_LIGHTS 8
+#define MAX_SPOT_LIGHTS 4
+
+struct PointLight {
+    vec3 position;
+    vec3 color;
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+struct SpotLight {
+    vec3 position;
+    vec3 direction;
+    vec3 color;
+    float cutOff;
+    float outerCutOff;
+    float constant;
+    float linear;
+    float quadratic;
+};
 
 uniform vec3 viewPos;
-uniform vec3 lightPos;
-uniform vec3 lightColor;
+uniform int numPointLights;
+uniform int numSpotLights;
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
+uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
+
+vec3 calcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color, vec3 specColor) {
+    vec3 lightDir = normalize(light.position - fragPos);
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
+
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * light.color * color;
+
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    vec3 specular = spec * light.color * specColor;
+
+    return (diffuse + specular) * attenuation;
+}
+
+vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color, vec3 specColor) {
+    vec3 lightDir = normalize(light.position - fragPos);
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * distance * distance);
+
+    float theta = dot(lightDir, normalize(-light.direction));
+    float epsilon = light.cutOff - light.outerCutOff;
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * light.color * color;
+
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    vec3 specular = spec * light.color * specColor;
+
+    return (diffuse + specular) * attenuation * intensity;
+}
 
 void main() {
     // which coordinates to use for normals
@@ -56,28 +120,27 @@ void main() {
     vec3 normal = texture(texture_normal1, normalUV).rgb * 2.0 - 1.0;
     normal = normalize(TBN * normal);
 
+    // which coordinates to use for specular map
+    vec2 specUV = texture_specular1_uv == 1 ? TexCoords2 : TexCoords;
+    vec2 emissiveUV = texture_emissive1_uv == 1 ? TexCoords2 : TexCoords;
+
     // currently diffuse always uses TexCoords - should be changed later for generality
     vec3 color = texture(texture_diffuse1, TexCoords).rgb;
+    vec3 specColor = texture(texture_specular1, specUV).rgb;
+    vec3 emission = texture(texture_emissive1, emissiveUV).rgb;
+    vec3 viewDir = normalize(viewPos - FragPos);
 
-    // attenuation
-    float distance = length(lightPos - FragPos);
-    float attenuation = 1.0 / (1.0 + 0.009 * distance + 0.032 * distance * distance);
+    vec3 result = 0.07 * color;
 
-    // ambient
-    vec3 ambient = 0.07 * color;
+    for (int i = 0; i < numPointLights; i++) {
+        result += calcPointLight(pointLights[i], normal, FragPos, viewDir, color, specColor);
+    }
 
-    // diffuse
-    vec3 lightDirection = normalize(lightPos - FragPos);
-    float diff = max(dot(normal, lightDirection), 0.0);
-    vec3 diffuse = diff * lightColor * color;
+    for (int i = 0; i < numSpotLights; i++) {
+        result += calcSpotLight(spotLights[i], normal, FragPos, viewDir, color, specColor);
+    }
 
-    // specular
-    vec3 viewDirection = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDirection, normal);
-    float spec = pow(max(dot(viewDirection, reflectDir), 0.0), 32.0);
-    vec3 specular = spec * lightColor * 0.3;
-
-    vec3 result = ambient + (diffuse + specular) * attenuation;
+    result += emission * emissiveFactor;
 
     // gamma correction
     result = pow(result, vec3(1.0 / 2.2));
