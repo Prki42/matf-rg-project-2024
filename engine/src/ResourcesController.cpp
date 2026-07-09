@@ -103,9 +103,9 @@ private:
 
     void process_mesh(aiMesh *mesh, const aiMatrix4x4 &transform);
 
-    std::vector<Texture *> process_materials(const aiMaterial *material);
+    std::vector<MeshTexture> process_materials(const aiMaterial *material);
 
-    void process_material_type(std::vector<Texture *> &textures, const aiMaterial *material, aiTextureType type);
+    void process_material_type(std::vector<MeshTexture> &textures, const aiMaterial *material, aiTextureType type);
 
     static TextureType assimp_texture_type_to_engine(aiTextureType type);
 
@@ -143,22 +143,23 @@ Model *ResourcesController::model(const std::string &name) {
     return result.get();
 }
 
-Texture *ResourcesController::texture(const std::string &name, const std::filesystem::path &path, TextureType type, bool flip_uvs, uint32_t uv_index, bool srgb) {
-    auto &result = m_textures[name];
+Texture *ResourcesController::texture(const std::string &name, const std::filesystem::path &path, TextureType type, bool flip_uvs, bool srgb) {
+    std::string cache_key = srgb ? name + "_srgb" : name;
+    auto &result = m_textures[cache_key];
     if (!result) {
-        spdlog::info("load_texture(path={})", path.string());
+        spdlog::info("load_texture(path={}, srgb={})", path.string(), srgb);
         auto texture = graphics::OpenGL::generate_texture(path, flip_uvs, srgb);
-        result = std::make_unique<Texture>(Texture(texture, type, path, path.stem(), uv_index));
+        result = std::make_unique<Texture>(Texture(texture, type, path, path.stem()));
     }
     return result.get();
 }
 
-Texture *ResourcesController::normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs, uint32_t uv_index, float strength) {
+Texture *ResourcesController::normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs, float strength) {
     auto &result = m_textures[name];
     if (!result) {
         spdlog::info("load_height_to_normal(path={}, strength={})", path.string(), strength);
         auto texture_id = graphics::OpenGL::generate_normal_from_height(path, flip_uvs, strength);
-        result = std::make_unique<Texture>(Texture(texture_id, TextureType::Normal, path, path.stem(), uv_index));
+        result = std::make_unique<Texture>(Texture(texture_id, TextureType::Normal, path, path.stem()));
     }
     return result.get();
 }
@@ -266,17 +267,26 @@ void AssimpSceneProcessor::process_mesh(aiMesh *mesh, const aiMatrix4x4 &transfo
     }
 
     auto material = m_scene->mMaterials[mesh->mMaterialIndex];
-    std::vector<Texture *> textures = process_materials(material);
-    m_meshes.emplace_back(Mesh(vertices, indices, std::move(textures)));
+    std::vector<MeshTexture> textures = process_materials(material);
+
+    aiColor3D emissive_color(0.0f, 0.0f, 0.0f);
+    material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color);
+    glm::vec3 emissive_factor(emissive_color.r, emissive_color.g, emissive_color.b);
+
+    float shininess = 32.0f;
+    material->Get(AI_MATKEY_SHININESS, shininess);
+
+    m_meshes.emplace_back(Mesh(vertices, indices, std::move(textures), emissive_factor, shininess));
 }
 
-std::vector<Texture *> AssimpSceneProcessor::process_materials(const aiMaterial *material) {
-    std::vector<Texture *> textures;
+std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMaterial *material) {
+    std::vector<MeshTexture> textures;
     auto ai_texture_types = {
             aiTextureType_DIFFUSE,
             aiTextureType_SPECULAR,
             aiTextureType_NORMALS,
             aiTextureType_HEIGHT,
+            aiTextureType_EMISSIVE,
     };
 
     for (auto ai_texture_type: ai_texture_types) {
@@ -284,8 +294,8 @@ std::vector<Texture *> AssimpSceneProcessor::process_materials(const aiMaterial 
     }
 
     bool has_diffuse = false;
-    for (auto *tex: textures) {
-        if (tex->type() == TextureType::Diffuse) {
+    for (auto &mt: textures) {
+        if (mt.texture->type() == TextureType::Diffuse) {
             has_diffuse = true;
             break;
         }
@@ -302,23 +312,42 @@ std::vector<Texture *> AssimpSceneProcessor::process_materials(const aiMaterial 
                                                                  static_cast<uint8_t>(color.r * 255),
                                                                  static_cast<uint8_t>(color.g * 255),
                                                                  static_cast<uint8_t>(color.b * 255));
-        textures.insert(textures.begin(), texture);
+        textures.insert(textures.begin(), {texture, 0});
     }
 
     bool has_normal = false;
-    for (auto *tex: textures) {
-        if (tex->type() == TextureType::Normal) has_normal = true;
+    bool has_specular = false;
+    bool has_emissive = false;
+    for (auto &mt: textures) {
+        if (mt.texture->type() == TextureType::Normal) has_normal = true;
+        if (mt.texture->type() == TextureType::Specular) has_specular = true;
+        if (mt.texture->type() == TextureType::Emissive) has_emissive = true;
     }
     if (!has_normal) {
-        textures.push_back(m_resources_controller->color_texture(
-                "_flat_normal", 128, 128, 255, TextureType::Normal));
+        textures.push_back({m_resources_controller->color_texture(
+                                    "_flat_normal", 128, 128, 255, TextureType::Normal),
+                            0});
+    }
+    if (!has_specular) {
+        textures.push_back({m_resources_controller->color_texture(
+                                    "_default_specular", 0, 0, 0, TextureType::Specular),
+                            0});
+    }
+    if (!has_emissive) {
+        textures.push_back({m_resources_controller->color_texture(
+                                    "_no_emission", 0, 0, 0, TextureType::Emissive),
+                            0});
     }
 
     return textures;
 }
 
-void AssimpSceneProcessor::process_material_type(std::vector<Texture *> &textures, const aiMaterial *material, aiTextureType type) {
+void AssimpSceneProcessor::process_material_type(std::vector<MeshTexture> &textures, const aiMaterial *material, aiTextureType type) {
     auto material_count = material->GetTextureCount(type);
+    if (material_count > 0) {
+        aiString mat_name;
+        material->Get(AI_MATKEY_NAME, mat_name);
+    }
     for (uint32_t i = 0; i < material_count; ++i) {
         aiString ai_texture_path_string;
         unsigned int uv_index = 0;
@@ -328,12 +357,12 @@ void AssimpSceneProcessor::process_material_type(std::vector<Texture *> &texture
         if (type == aiTextureType_HEIGHT) {
             float bump_strength = 4.0f;
             material->Get(AI_MATKEY_BUMPSCALING, bump_strength);
-            texture = m_resources_controller->normal_from_height(texture_path.string(), texture_path, false, uv_index, bump_strength);
+            texture = m_resources_controller->normal_from_height(texture_path.string(), texture_path, false, bump_strength);
         } else {
-            bool srgb = (type == aiTextureType_DIFFUSE);
-            texture = m_resources_controller->texture(texture_path.string(), texture_path, assimp_texture_type_to_engine(type), false, uv_index, srgb);
+            bool srgb = (type == aiTextureType_DIFFUSE || type == aiTextureType_EMISSIVE);
+            texture = m_resources_controller->texture(texture_path.string(), texture_path, assimp_texture_type_to_engine(type), false, srgb);
         }
-        textures.emplace_back(texture);
+        textures.push_back({texture, uv_index});
     }
 }
 
@@ -344,6 +373,7 @@ TextureType AssimpSceneProcessor::assimp_texture_type_to_engine(aiTextureType ty
         // height maps get converted to normals
         case aiTextureType_HEIGHT: return TextureType::Normal;
         case aiTextureType_NORMALS: return TextureType::Normal;
+        case aiTextureType_EMISSIVE: return TextureType::Emissive;
         default: RG_SHOULD_NOT_REACH_HERE("Engine currently doesn't support the aiTextureType: {}", static_cast<int>(type));
     }
 }

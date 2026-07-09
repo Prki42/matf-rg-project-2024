@@ -11,7 +11,9 @@
 namespace engine::resources {
 
 Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices,
-           std::vector<Texture *> textures) {
+           std::vector<MeshTexture> textures, glm::vec3 emissive_factor, float shininess)
+    : m_emissive_factor(emissive_factor)
+    , m_shininess(shininess) {
     // NOLINTBEGIN
     static_assert(std::is_trivial_v<Vertex>);
     uint32_t VAO, VBO, EBO;
@@ -57,16 +59,18 @@ void Mesh::draw(const Shader *shader) {
     uniform_name.reserve(32);
     for (int i = 0; i < m_textures.size(); i++) {
         CHECKED_GL_CALL(glActiveTexture, GL_TEXTURE0 + i);
-        const auto &texture_type = Texture::uniform_name_convention(m_textures[i]->type());
+        const auto &texture_type = Texture::uniform_name_convention(m_textures[i].texture->type());
         uniform_name.append(texture_type);
         const auto count = (counts[texture_type] += 1);
         uniform_name.append(std::to_string(count));
         shader->set_int(uniform_name, i);
         std::string uv_uniform = uniform_name + "_uv";
-        shader->set_int(uv_uniform, static_cast<int>(m_textures[i]->uv_index()));
-        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, m_textures[i]->id());
+        shader->set_int(uv_uniform, static_cast<int>(m_textures[i].uv_index));
+        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, m_textures[i].texture->id());
         uniform_name.clear();
     }
+    shader->set_vec3("emissiveFactor", m_emissive_factor);
+    shader->set_float("shininess", m_shininess);
     CHECKED_GL_CALL(glBindVertexArray, m_vao);
     CHECKED_GL_CALL(glDrawElements, GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, (void *) 0);
     CHECKED_GL_CALL(glBindVertexArray, 0);

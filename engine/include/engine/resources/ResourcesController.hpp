@@ -46,7 +46,6 @@ public:
                      const std::filesystem::path &path = "",
                      TextureType texture_type = TextureType::Regular,
                      bool flip_uvs = false,
-                     uint32_t uv_index = 0,
                      bool srgb = false);
 
     /**
@@ -73,7 +72,7 @@ public:
 
     Texture *color_texture(const std::string &name, uint8_t r, uint8_t g, uint8_t b, TextureType type = TextureType::Diffuse);
 
-    Texture *normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs = false, uint32_t uv_index = 0, float strength = 4.0f);
+    Texture *normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs = false, float strength = 4.0f);
 
 private:
     /**

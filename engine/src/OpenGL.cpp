@@ -111,7 +111,6 @@ uint32_t OpenGL::generate_normal_from_height(const std::filesystem::path &path, 
 }
 
 uint32_t OpenGL::generate_color_texture(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-    spdlog::info("GENERATING COLOR: {}, {}, {}", r, g, b);
     uint32_t texture_id = 0;
     CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
     uint8_t pixels[4] = {r, g, b, a};
