@@ -6,6 +6,7 @@
 #ifndef GRAPHICSCONTROLLER_HPP
 #define GRAPHICSCONTROLLER_HPP
 
+#include <cstdint>
 #include <engine/core/Controller.hpp>
 #include <engine/graphics/Camera.hpp>
 #include <engine/platform/PlatformEventObserver.hpp>
@@ -86,6 +87,10 @@ public:
     */
     void draw_skybox(const resources::Shader *shader, const resources::Skybox *skybox);
 
+    void set_bloom(bool enabled);
+
+    void set_exposure(float exposure);
+
     Camera *camera() {
         return &m_camera;
     }
@@ -159,7 +164,17 @@ private:
     */
     void initialize() override;
 
-    void terminate();
+    void terminate() override;
+
+    void begin_draw() override;
+
+    void end_draw() override;
+
+    void setup_bloom_framebuffers(int width, int height);
+
+    void render_bloom();
+
+    void render_quad();
 
     PerspectiveMatrixParams m_perspective_params{};
     OrthographicMatrixParams m_ortho_params{};
@@ -167,6 +182,18 @@ private:
     glm::mat4 m_projection_matrix{};
     Camera m_camera{};
     ImGuiContext *m_imgui_context{};
+
+    bool m_bloom_enabled{false};
+    float m_exposure{1.0f};
+    uint32_t m_hdr_fbo{0};
+    uint32_t m_color_buffers[2]{0, 0};
+    uint32_t m_rbo_depth{0};
+    uint32_t m_ping_pong_fbo[2]{0, 0};
+    uint32_t m_ping_pong_buffers[2]{0, 0};
+    uint32_t m_quad_vao{0};
+    uint32_t m_quad_vbo{0};
+    int m_bloom_fb_width{0};
+    int m_bloom_fb_height{0};
 };
 
 /**

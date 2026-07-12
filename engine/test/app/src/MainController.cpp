@@ -53,7 +53,7 @@ void MainController::draw() {
 }
 
 void MainController::end_draw() {
-    engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
+    // engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
 }
 
 void MainController::draw_backpack() {
