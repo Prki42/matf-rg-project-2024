@@ -1,4 +1,5 @@
 #include <assimp/Importer.hpp>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <engine/graphics/OpenGL.hpp>
@@ -147,7 +148,7 @@ Texture *ResourcesController::texture(const std::string &name, const std::filesy
     std::string cache_key = srgb ? name + "_srgb" : name;
     auto &result = m_textures[cache_key];
     if (!result) {
-        spdlog::info("load_texture(path={}, srgb={})", path.string(), srgb);
+        spdlog::info("'{}' = texture(path={}, srgb={})", path.stem().string(), path.string(), srgb);
         auto texture = graphics::OpenGL::generate_texture(path, flip_uvs, srgb);
         result = std::make_unique<Texture>(Texture(texture, type, path, path.stem()));
     }
@@ -157,7 +158,7 @@ Texture *ResourcesController::texture(const std::string &name, const std::filesy
 Texture *ResourcesController::normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs, float strength) {
     auto &result = m_textures[name];
     if (!result) {
-        spdlog::info("load_height_to_normal(path={}, strength={})", path.string(), strength);
+        spdlog::info("'{}' = load_height_to_normal(path={}, strength={})", path.stem().string(), path.string(), strength);
         auto texture_id = graphics::OpenGL::generate_normal_from_height(path, flip_uvs, strength);
         result = std::make_unique<Texture>(Texture(texture_id, TextureType::Normal, path, path.stem()));
     }
@@ -167,6 +168,7 @@ Texture *ResourcesController::normal_from_height(const std::string &name, const 
 Texture *ResourcesController::color_texture(const std::string &name, uint8_t r, uint8_t g, uint8_t b, TextureType type) {
     auto &result = m_textures[name];
     if (!result) {
+        spdlog::info("'{}' = color_texture({}, {}, {})", name, r, g, b);
         auto texture_id = graphics::OpenGL::generate_color_texture(r, g, b);
         result = std::make_unique<Texture>(Texture(texture_id, type, "", name));
     }
@@ -344,6 +346,10 @@ std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMateria
         textures.push_back({m_resources_controller->color_texture(
                                     "_no_emission", 0, 0, 0, TextureType::Emissive),
                             0});
+    }
+
+    for (auto &mt: textures) {
+        spdlog::info("set texture '{}' with index {} for '{}' as '{}'", mt.texture->name(), mt.uv_index, material->GetName().C_Str(), Texture::uniform_name_convention(mt.texture->type()));
     }
 
     return textures;
