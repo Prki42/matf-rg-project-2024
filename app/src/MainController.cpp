@@ -1,7 +1,7 @@
 #include "MainController.hpp"
-#include "glm/fwd.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
+#include <engine/graphics/OpenGL.hpp>
 #include <engine/platform/PlatformController.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -19,6 +19,10 @@ void MainController::initialize() {
     auto observer = std::make_unique<MainPlatformEventObserver>();
     engine::core::Controller::get<engine::platform::PlatformController>()->register_platform_event_observer(
             std::move(observer));
+
+    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+    graphics->set_bloom(true);
+    graphics->set_exposure(1.0f);
 }
 
 bool MainController::loop() {
@@ -41,16 +45,8 @@ void MainController::update() {
     update_camera();
 }
 
-void MainController::begin_draw() {
-    engine::graphics::OpenGL::clear_buffers();
-}
-
 void MainController::draw() {
     draw_room();
-}
-
-void MainController::end_draw() {
-    engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
 }
 
 void MainController::draw_room() {
@@ -76,7 +72,7 @@ void MainController::draw_room() {
     shader->set_float("pointLights[0].linear", 0.009f);
     shader->set_float("pointLights[0].quadratic", 0.032f);
 
-    shader->set_vec3("pointLights[1].position", glm::vec3(3.0f, 2.0f, 3.0f));
+    shader->set_vec3("pointLights[1].position", glm::vec3(3.0f, 2.0f, 10.0f));
     shader->set_vec3("pointLights[1].color", glm::vec3(1.0f, 0.5f, 0.2f));
     shader->set_float("pointLights[1].constant", 1.0f);
     shader->set_float("pointLights[1].linear", 0.009f);
