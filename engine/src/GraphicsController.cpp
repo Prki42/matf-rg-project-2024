@@ -94,6 +94,12 @@ void GraphicsController::set_exposure(float exposure) {
     m_exposure = exposure;
 }
 
+void GraphicsController::bind_hdr_framebuffer() {
+    auto platform = core::Controller::get<platform::PlatformController>();
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, m_hdr_fbo);
+    CHECKED_GL_CALL(glViewport, 0, 0, platform->window()->width(), platform->window()->height());
+}
+
 void GraphicsController::begin_draw() {
     if (m_quad_vao == 0) {
         // clang-format off

@@ -138,6 +138,32 @@ public:
     */
     static void clear_buffers();
 
+    static void clear_depth_buffer();
+
+    static uint32_t create_depth_cubemap(int resolution);
+
+    static uint32_t create_depth_cubemap_fbo(uint32_t cubemap_texture);
+
+    static void bind_framebuffer(uint32_t fbo);
+
+    static uint32_t current_framebuffer();
+
+    static void set_viewport(int x, int y, int width, int height);
+
+    static void current_viewport(int out[4]);
+
+    static void bind_texture_cube_map(uint32_t unit, uint32_t texture);
+
+    static uint32_t create_depth_texture(int resolution);
+
+    static uint32_t create_depth_texture_fbo(uint32_t depth_texture);
+
+    static void bind_texture_2d(uint32_t unit, uint32_t texture);
+
+    static void cull_front_faces();
+
+    static void cull_back_faces();
+
     /**
     * @brief Retrieve the shader compilation error log message.
     * @param shader_id Shader id for which the compilation failed.

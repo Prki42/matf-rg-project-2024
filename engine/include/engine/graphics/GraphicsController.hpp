@@ -91,6 +91,8 @@ public:
 
     void set_exposure(float exposure);
 
+    void bind_hdr_framebuffer();
+
     Camera *camera() {
         return &m_camera;
     }

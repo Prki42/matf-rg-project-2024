@@ -249,6 +249,101 @@ void OpenGL::clear_buffers() {
     CHECKED_GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+void OpenGL::clear_depth_buffer() {
+    CHECKED_GL_CALL(glClear, GL_DEPTH_BUFFER_BIT);
+}
+
+uint32_t OpenGL::create_depth_cubemap(int resolution) {
+    uint32_t texture = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_CUBE_MAP, texture);
+    for (int i = 0; i < 6; ++i) {
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                        resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *)0);
+    }
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    return texture;
+}
+
+uint32_t OpenGL::create_depth_cubemap_fbo(uint32_t cubemap_texture) {
+    uint32_t fbo = 0;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+    CHECKED_GL_CALL(glFramebufferTexture, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubemap_texture, 0);
+    CHECKED_GL_CALL(glDrawBuffer, GL_NONE);
+    CHECKED_GL_CALL(glReadBuffer, GL_NONE);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fbo;
+}
+
+void OpenGL::bind_framebuffer(uint32_t fbo) {
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+}
+
+uint32_t OpenGL::current_framebuffer() {
+    int fbo = 0;
+    CHECKED_GL_CALL(glGetIntegerv, GL_FRAMEBUFFER_BINDING, &fbo);
+    return static_cast<uint32_t>(fbo);
+}
+
+void OpenGL::set_viewport(int x, int y, int width, int height) {
+    CHECKED_GL_CALL(glViewport, x, y, width, height);
+}
+
+void OpenGL::current_viewport(int out[4]) {
+    CHECKED_GL_CALL(glGetIntegerv, GL_VIEWPORT, out);
+}
+
+void OpenGL::bind_texture_cube_map(uint32_t unit, uint32_t texture) {
+    CHECKED_GL_CALL(glActiveTexture, GL_TEXTURE0 + unit);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_CUBE_MAP, texture);
+}
+
+uint32_t OpenGL::create_depth_texture(int resolution) {
+    uint32_t texture = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                    resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *)0);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    CHECKED_GL_CALL(glTexParameterfv, GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+    return texture;
+}
+
+uint32_t OpenGL::create_depth_texture_fbo(uint32_t depth_texture) {
+    uint32_t fbo = 0;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+    CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_texture, 0);
+    CHECKED_GL_CALL(glDrawBuffer, GL_NONE);
+    CHECKED_GL_CALL(glReadBuffer, GL_NONE);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fbo;
+}
+
+void OpenGL::bind_texture_2d(uint32_t unit, uint32_t texture) {
+    CHECKED_GL_CALL(glActiveTexture, GL_TEXTURE0 + unit);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
+}
+
+void OpenGL::cull_front_faces() {
+    CHECKED_GL_CALL(glEnable, GL_CULL_FACE);
+    CHECKED_GL_CALL(glCullFace, GL_FRONT);
+}
+
+void OpenGL::cull_back_faces() {
+    CHECKED_GL_CALL(glCullFace, GL_BACK);
+    CHECKED_GL_CALL(glDisable, GL_CULL_FACE);
+}
+
 uint32_t face_index(std::string_view name) {
     if (name == "right") {
         return 0;
