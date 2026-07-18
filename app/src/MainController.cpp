@@ -1,4 +1,6 @@
 #include "MainController.hpp"
+#include "LightController.hpp"
+#include "SceneController.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
@@ -23,6 +25,33 @@ void MainController::initialize() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     graphics->set_bloom(true);
     graphics->set_exposure(1.0f);
+
+    auto lights = engine::core::Controller::get<LightController>();
+    auto &ceiling = lights->add_point_light();
+    ceiling.position = {0.0f, 4.0f, 0.0f};
+    ceiling.color = {0.6f, 0.6f, 1.0f};
+    ceiling.linear = 0.009f;
+
+    auto &warm = lights->add_point_light();
+    warm.position = {3.0f, 2.0f, 10.0f};
+    warm.color = {1.0f, 0.5f, 0.2f};
+    warm.linear = 0.009f;
+
+    auto &spot = lights->add_spot_light();
+    spot.position = {0.0f, 5.0f, 0.0f};
+    spot.direction = {0.0f, -1.0f, 0.0f};
+    spot.color = {1.0f, 1.0f, 1.0f};
+    spot.cutOff = glm::cos(glm::radians(15.0f));
+    spot.outerCutOff = glm::cos(glm::radians(20.0f));
+    spot.linear = 0.09f;
+
+    auto scene = engine::core::Controller::get<SceneController>();
+    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    scene->add_renderable(resources->model("room"));
+    scene->add_renderable(resources->model("cube"),
+                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 2.0f}));
+    scene->add_renderable(resources->model("wheatley"),
+                          glm::scale(glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 4.0f}), glm::vec3(0.05f)));
 }
 
 bool MainController::loop() {
@@ -46,60 +75,20 @@ void MainController::update() {
 }
 
 void MainController::draw() {
-    draw_room();
-}
-
-void MainController::draw_room() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     auto shader = engine::core::Controller::get<engine::resources::ResourcesController>()->shader("basic");
-    auto room = engine::core::Controller::get<engine::resources::ResourcesController>()->model("room");
-    auto cube = engine::core::Controller::get<engine::resources::ResourcesController>()->model("cube");
-    auto moron = engine::core::Controller::get<engine::resources::ResourcesController>()->model("wheatley");
+    auto scene = engine::core::Controller::get<SceneController>();
 
     shader->use();
-
-    auto model = glm::mat4(1.0f);
-
     shader->set_mat4("projection", graphics->projection_matrix());
     shader->set_mat4("view", graphics->camera()->view_matrix());
-    shader->set_mat4("model", model);
     shader->set_vec3("viewPos", graphics->camera()->Position);
+    engine::core::Controller::get<LightController>()->apply(shader);
 
-    shader->set_int("numPointLights", 2);
-    shader->set_vec3("pointLights[0].position", glm::vec3(0.0f, 4.0f, 0.0f));
-    shader->set_vec3("pointLights[0].color", glm::vec3(0.6f, 0.6f, 1.0f));
-    shader->set_float("pointLights[0].constant", 1.0f);
-    shader->set_float("pointLights[0].linear", 0.009f);
-    shader->set_float("pointLights[0].quadratic", 0.032f);
-
-    shader->set_vec3("pointLights[1].position", glm::vec3(3.0f, 2.0f, 10.0f));
-    shader->set_vec3("pointLights[1].color", glm::vec3(1.0f, 0.5f, 0.2f));
-    shader->set_float("pointLights[1].constant", 1.0f);
-    shader->set_float("pointLights[1].linear", 0.009f);
-    shader->set_float("pointLights[1].quadratic", 0.032f);
-
-    shader->set_int("numSpotLights", 1);
-    shader->set_vec3("spotLights[0].position", glm::vec3(0.0f, 5.0f, 0.0f));
-    shader->set_vec3("spotLights[0].direction", glm::vec3(0.0f, -1.0f, 0.0f));
-    shader->set_vec3("spotLights[0].color", glm::vec3(1.0f, 1.0f, 1.0f));
-    shader->set_float("spotLights[0].cutOff", glm::cos(glm::radians(15.0f)));
-    shader->set_float("spotLights[0].outerCutOff", glm::cos(glm::radians(20.0f)));
-    shader->set_float("spotLights[0].constant", 1.0f);
-    shader->set_float("spotLights[0].linear", 0.09f);
-    shader->set_float("spotLights[0].quadratic", 0.032f);
-
-    room->draw(shader);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(1.0f, 0.7f, 2.0f));
-    shader->set_mat4("model", model);
-    cube->draw(shader);
-
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(1.0f, 0.7f, 4.0f));
-    model = glm::scale(model, glm::vec3(0.05));
-    shader->set_mat4("model", model);
-    moron->draw(shader);
+    for (auto &r: scene->renderables()) {
+        shader->set_mat4("model", r.transform);
+        r.model->draw(shader);
+    }
 }
 
 void MainController::update_camera() {

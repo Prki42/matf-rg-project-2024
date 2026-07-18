@@ -28,8 +28,6 @@ private:
 
     void draw() override;
 
-    void draw_room();
-
     void update_camera();
 
     bool m_cursor_enabled{true};
