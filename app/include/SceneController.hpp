@@ -3,6 +3,7 @@
 
 #include <engine/core/Controller.hpp>
 #include <engine/resources/Model.hpp>
+#include <engine/resources/Shader.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -20,6 +21,8 @@ public:
     }
 
     Renderable &add_renderable(engine::resources::Model *model, const glm::mat4 &transform = glm::mat4(1.0f));
+
+    void render_all(const engine::resources::Shader *shader);
 
     std::vector<Renderable> &renderables() { return m_renderables; }
     const std::vector<Renderable> &renderables() const { return m_renderables; }

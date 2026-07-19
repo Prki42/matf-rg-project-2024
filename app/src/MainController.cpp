@@ -31,25 +31,30 @@ void MainController::initialize() {
     ceiling.position = {0.0f, 4.0f, 0.0f};
     ceiling.color = {0.6f, 0.6f, 1.0f};
     ceiling.linear = 0.009f;
+    ceiling.casts_shadows = true;
 
     auto &warm = lights->add_point_light();
-    warm.position = {3.0f, 2.0f, 10.0f};
+    warm.position = {3.0f, 2.0f, 7.0f};
     warm.color = {1.0f, 0.5f, 0.2f};
     warm.linear = 0.009f;
+    warm.casts_shadows = true;
 
     auto &spot = lights->add_spot_light();
-    spot.position = {0.0f, 5.0f, 0.0f};
-    spot.direction = {0.0f, -1.0f, 0.0f};
+    spot.position = {0.4f, 1.0f, 0.0f};
+    spot.direction = {0.0f, 0.0f, 1.0f};
     spot.color = {1.0f, 1.0f, 1.0f};
     spot.cutOff = glm::cos(glm::radians(15.0f));
     spot.outerCutOff = glm::cos(glm::radians(20.0f));
     spot.linear = 0.09f;
+    spot.casts_shadows = true;
 
     auto scene = engine::core::Controller::get<SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
     scene->add_renderable(resources->model("room"));
     scene->add_renderable(resources->model("cube"),
                           glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 2.0f}));
+    scene->add_renderable(resources->model("cube"),
+                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 4.0f}));
     scene->add_renderable(resources->model("wheatley"),
                           glm::scale(glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 4.0f}), glm::vec3(0.05f)));
 }
@@ -85,10 +90,7 @@ void MainController::draw() {
     shader->set_vec3("viewPos", graphics->camera()->Position);
     engine::core::Controller::get<LightController>()->apply(shader);
 
-    for (auto &r: scene->renderables()) {
-        shader->set_mat4("model", r.transform);
-        r.model->draw(shader);
-    }
+    scene->render_all(shader);
 }
 
 void MainController::update_camera() {
