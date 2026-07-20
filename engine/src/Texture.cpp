@@ -28,6 +28,7 @@ void Texture::bind(int32_t sampler) {
 
 std::string_view Texture::uniform_name_convention(TextureType type) {
     switch (type) {
+        case TextureType::Regular: return "texture";
         case TextureType::Diffuse: return "texture_diffuse";
         case TextureType::Specular: return "texture_specular";
         case TextureType::Normal: return "texture_normal";

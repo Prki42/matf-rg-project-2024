@@ -145,7 +145,7 @@ Model *ResourcesController::model(const std::string &name) {
 }
 
 Texture *ResourcesController::texture(const std::string &name, const std::filesystem::path &path, TextureType type, bool flip_uvs, bool srgb) {
-    std::string cache_key = srgb ? name + "_srgb" : name;
+    std::string cache_key = std::format("{}_{}{}", name, Texture::uniform_name_convention(type), srgb ? "_srgb" : "");
     auto &result = m_textures[cache_key];
     if (!result) {
         spdlog::info("'{}' = texture(path={}, srgb={})", path.stem().string(), path.string(), srgb);
@@ -275,6 +275,11 @@ void AssimpSceneProcessor::process_mesh(aiMesh *mesh, const aiMatrix4x4 &transfo
     material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color);
     glm::vec3 emissive_factor(emissive_color.r, emissive_color.g, emissive_color.b);
 
+    bool has_emissive_texture = material->GetTextureCount(aiTextureType_EMISSIVE) > 0;
+    if (has_emissive_texture && emissive_factor == glm::vec3(0.0f)) {
+        emissive_factor = glm::vec3(1.0f);
+    }
+
     float shininess = 32.0f;
     material->Get(AI_MATKEY_SHININESS, shininess);
 
@@ -317,14 +322,10 @@ std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMateria
         textures.insert(textures.begin(), {texture, 0});
     }
 
-    bool has_normal = false;
-    bool has_specular = false;
-    bool has_emissive = false;
-    for (auto &mt: textures) {
-        if (mt.texture->type() == TextureType::Normal) has_normal = true;
-        if (mt.texture->type() == TextureType::Specular) has_specular = true;
-        if (mt.texture->type() == TextureType::Emissive) has_emissive = true;
-    }
+    bool has_normal = material->GetTextureCount(aiTextureType_NORMALS) > 0 ||
+                      material->GetTextureCount(aiTextureType_HEIGHT) > 0;
+    bool has_specular = material->GetTextureCount(aiTextureType_SPECULAR) > 0;
+    bool has_emissive = material->GetTextureCount(aiTextureType_EMISSIVE) > 0;
     if (!has_normal) {
         textures.push_back({m_resources_controller->color_texture(
                                     "_flat_normal", 128, 128, 255, TextureType::Normal),
