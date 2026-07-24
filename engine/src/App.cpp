@@ -101,6 +101,7 @@ void App::draw() {
             controller->end_draw();
         }
     }
+    Controller::get<platform::PlatformController>()->swap_buffers();
 }
 
 void App::terminate() {
