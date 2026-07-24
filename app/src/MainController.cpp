@@ -1,5 +1,6 @@
 #include "MainController.hpp"
 #include "LightController.hpp"
+#include "PostProcessController.hpp"
 #include "SceneController.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
@@ -22,9 +23,9 @@ void MainController::initialize() {
     engine::core::Controller::get<engine::platform::PlatformController>()->register_platform_event_observer(
             std::move(observer));
 
-    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
-    graphics->set_bloom(true);
-    graphics->set_exposure(1.0f);
+    auto post = engine::core::Controller::get<PostProcessController>();
+    post->set_bloom(true);
+    post->set_exposure(1.0f);
 
     auto lights = engine::core::Controller::get<LightController>();
     auto &ceiling = lights->add_point_light();

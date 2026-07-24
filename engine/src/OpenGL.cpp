@@ -1,6 +1,4 @@
-
 // clang-format off
-#include "spdlog/spdlog.h"
 #include <glad/glad.h>
 // clang-format on
 #include <engine/graphics/OpenGL.hpp>
@@ -259,7 +257,7 @@ uint32_t OpenGL::create_depth_cubemap(int resolution) {
     CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_CUBE_MAP, texture);
     for (int i = 0; i < 6; ++i) {
         CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
-                        resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *)0);
+                        resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *) 0);
     }
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -308,7 +306,7 @@ uint32_t OpenGL::create_depth_texture(int resolution) {
     CHECKED_GL_CALL(glGenTextures, 1, &texture);
     CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
     CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                    resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *)0);
+                    resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *) 0);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -342,6 +340,96 @@ void OpenGL::cull_front_faces() {
 void OpenGL::cull_back_faces() {
     CHECKED_GL_CALL(glCullFace, GL_BACK);
     CHECKED_GL_CALL(glDisable, GL_CULL_FACE);
+}
+
+OpenGL::HdrFramebuffer OpenGL::create_hdr_framebuffer(int width, int height) {
+    HdrFramebuffer fb;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fb.fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fb.fbo);
+    CHECKED_GL_CALL(glGenTextures, 2, fb.color_buffers);
+    for (int i = 0; i < 2; i++) {
+        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, fb.color_buffers[i]);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, (void *) 0);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, fb.color_buffers[i], 0);
+    }
+    CHECKED_GL_CALL(glGenRenderbuffers, 1, &fb.depth_rbo);
+    CHECKED_GL_CALL(glBindRenderbuffer, GL_RENDERBUFFER, fb.depth_rbo);
+    CHECKED_GL_CALL(glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    CHECKED_GL_CALL(glFramebufferRenderbuffer, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.depth_rbo);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    CHECKED_GL_CALL(glDrawBuffers, 2, attachments);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fb;
+}
+
+void OpenGL::destroy_hdr_framebuffer(HdrFramebuffer &fb) {
+    if (fb.fbo) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 1, &fb.fbo);
+        CHECKED_GL_CALL(glDeleteTextures, 2, fb.color_buffers);
+        CHECKED_GL_CALL(glDeleteRenderbuffers, 1, &fb.depth_rbo);
+        fb = {};
+    }
+}
+
+OpenGL::PingPongBuffers OpenGL::create_ping_pong_buffers(int width, int height) {
+    PingPongBuffers pp;
+    CHECKED_GL_CALL(glGenFramebuffers, 2, pp.fbo);
+    CHECKED_GL_CALL(glGenTextures, 2, pp.textures);
+    for (int i = 0; i < 2; i++) {
+        CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, pp.fbo[i]);
+        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, pp.textures[i]);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, (void *) 0);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pp.textures[i], 0);
+    }
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return pp;
+}
+
+void OpenGL::destroy_ping_pong_buffers(PingPongBuffers &pp) {
+    if (pp.fbo[0]) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 2, pp.fbo);
+        CHECKED_GL_CALL(glDeleteTextures, 2, pp.textures);
+        pp = {};
+    }
+}
+
+uint32_t OpenGL::create_screen_quad() {
+    // clang-format off
+    float vertices[] = {
+        -1.0f,  1.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+         1.0f, -1.0f, 1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f, 1.0f,
+         1.0f, -1.0f, 1.0f, 0.0f,
+         1.0f,  1.0f, 1.0f, 1.0f,
+    };
+    // clang-format on
+    uint32_t vao, vbo;
+    CHECKED_GL_CALL(glGenVertexArrays, 1, &vao);
+    CHECKED_GL_CALL(glGenBuffers, 1, &vbo);
+    CHECKED_GL_CALL(glBindVertexArray, vao);
+    CHECKED_GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vbo);
+    CHECKED_GL_CALL(glBufferData, GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    CHECKED_GL_CALL(glEnableVertexAttribArray, 0);
+    CHECKED_GL_CALL(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, 4 * static_cast<int>(sizeof(float)), (void *) 0);
+    CHECKED_GL_CALL(glEnableVertexAttribArray, 1);
+    CHECKED_GL_CALL(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, 4 * static_cast<int>(sizeof(float)), (void *) (2 * sizeof(float)));
+    CHECKED_GL_CALL(glBindVertexArray, 0);
+    return vao;
+}
+
+void OpenGL::draw_screen_quad(uint32_t vao) {
+    CHECKED_GL_CALL(glBindVertexArray, vao);
+    CHECKED_GL_CALL(glDrawArrays, GL_TRIANGLES, 0, 6);
+    CHECKED_GL_CALL(glBindVertexArray, 0);
 }
 
 uint32_t face_index(std::string_view name) {

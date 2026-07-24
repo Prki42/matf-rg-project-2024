@@ -164,6 +164,29 @@ public:
 
     static void cull_back_faces();
 
+    struct HdrFramebuffer {
+        uint32_t fbo = 0;
+        uint32_t color_buffers[2] = {0, 0};
+        uint32_t depth_rbo = 0;
+    };
+
+    static HdrFramebuffer create_hdr_framebuffer(int width, int height);
+
+    static void destroy_hdr_framebuffer(HdrFramebuffer &fb);
+
+    struct PingPongBuffers {
+        uint32_t fbo[2] = {0, 0};
+        uint32_t textures[2] = {0, 0};
+    };
+
+    static PingPongBuffers create_ping_pong_buffers(int width, int height);
+
+    static void destroy_ping_pong_buffers(PingPongBuffers &pp);
+
+    static uint32_t create_screen_quad();
+
+    static void draw_screen_quad(uint32_t vao);
+
     /**
     * @brief Retrieve the shader compilation error log message.
     * @param shader_id Shader id for which the compilation failed.
