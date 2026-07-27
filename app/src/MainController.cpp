@@ -1,4 +1,5 @@
 #include "MainController.hpp"
+#include "GUIController.hpp"
 #include "LightController.hpp"
 #include "PostProcessController.hpp"
 #include "SceneController.hpp"
@@ -95,6 +96,9 @@ void MainController::draw() {
 }
 
 void MainController::update_camera() {
+    if (engine::core::Controller::get<GUIController>()->is_enabled()) {
+        return;
+    }
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     auto camera = engine::core::Controller::get<engine::graphics::GraphicsController>()->camera();
     float dt = platform->dt();

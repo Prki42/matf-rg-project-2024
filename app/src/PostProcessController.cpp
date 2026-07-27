@@ -45,8 +45,6 @@ void PostProcessController::end_draw() {
     bloom_shader->set_int("bloom", m_bloom_enabled ? 1 : 0);
     bloom_shader->set_float("exposure", m_exposure);
     engine::graphics::OpenGL::draw_screen_quad(m_quad_vao);
-
-    engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
 }
 
 void PostProcessController::render_bloom() {

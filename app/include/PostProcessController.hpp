@@ -13,7 +13,9 @@ public:
     }
 
     void set_bloom(bool enabled) { m_bloom_enabled = enabled; }
+    bool bloom() const { return m_bloom_enabled; }
     void set_exposure(float exposure) { m_exposure = exposure; }
+    float exposure() const { return m_exposure; }
 
 private:
     void initialize() override;
