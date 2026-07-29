@@ -26,18 +26,13 @@ uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_u
 
     int32_t width, height, nr_components;
     stbi_set_flip_vertically_on_load(flip_uvs);
-    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 0);
+    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 4);
     defer {
         stbi_image_free(data);
     };
     if (data) {
-        int32_t format = texture_format(nr_components);
-        int32_t internal_format = format;
-        if (srgb) {
-            if (nr_components == 4) internal_format = GL_SRGB8_ALPHA8;
-            else if (nr_components == 3)
-                internal_format = GL_SRGB8;
-        }
+        int32_t format = GL_RGBA;
+        int32_t internal_format = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA;
 
         CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
         CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -449,15 +444,6 @@ uint32_t face_index(std::string_view name) {
         RG_SHOULD_NOT_REACH_HERE(
                 "Unknown face name: {}. The cubemap textures should be named: right, left, top, bottom, front, back; by their respective faces in the cubemap. The extension of the image file is ignored.",
                 name);
-    }
-}
-
-int32_t stbi_number_of_channels_to_gl_format(int32_t number_of_channels) {
-    switch (number_of_channels) {
-        case 1: return GL_RED;
-        case 3: return GL_RGB;
-        case 4: return GL_RGBA;
-        default: RG_SHOULD_NOT_REACH_HERE("Unknown channels {}", number_of_channels);
     }
 }
 

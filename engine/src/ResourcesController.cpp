@@ -283,7 +283,22 @@ void AssimpSceneProcessor::process_mesh(aiMesh *mesh, const aiMatrix4x4 &transfo
     float shininess = 32.0f;
     material->Get(AI_MATKEY_SHININESS, shininess);
 
-    m_meshes.emplace_back(Mesh(vertices, indices, std::move(textures), emissive_factor, shininess));
+    float opacity = 1.0f;
+    material->Get(AI_MATKEY_OPACITY, opacity);
+
+    aiColor3D diffuse_color(1.0f, 1.0f, 1.0f);
+    material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color);
+    glm::vec3 diffuse_factor(diffuse_color.r, diffuse_color.g, diffuse_color.b);
+
+    aiString mat_name;
+    material->Get(AI_MATKEY_NAME, mat_name);
+    spdlog::info("Material '{}': diffuse=({},{},{}), opacity={}, emissive=({},{},{})",
+                 mat_name.C_Str(),
+                 diffuse_color.r, diffuse_color.g, diffuse_color.b,
+                 opacity,
+                 emissive_color.r, emissive_color.g, emissive_color.b);
+
+    m_meshes.emplace_back(Mesh(vertices, indices, std::move(textures), emissive_factor, shininess, opacity, diffuse_factor));
 }
 
 std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMaterial *material) {
@@ -308,17 +323,7 @@ std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMateria
         }
     }
     if (!has_diffuse) {
-        aiColor3D color(1.0f, 1.0f, 1.0f);
-        material->Get(AI_MATKEY_COLOR_DIFFUSE, color);
-        aiString mat_name;
-        material->Get(AI_MATKEY_NAME, mat_name);
-
-        std::string name = std::string("_generated_diffuse_") + mat_name.C_Str();
-
-        Texture *texture = m_resources_controller->color_texture(name,
-                                                                 static_cast<uint8_t>(color.r * 255),
-                                                                 static_cast<uint8_t>(color.g * 255),
-                                                                 static_cast<uint8_t>(color.b * 255));
+        Texture *texture = m_resources_controller->color_texture("_white_diffuse", 255, 255, 255);
         textures.insert(textures.begin(), {texture, 0});
     }
 

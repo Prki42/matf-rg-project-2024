@@ -11,9 +11,12 @@
 namespace engine::resources {
 
 Mesh::Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices,
-           std::vector<MeshTexture> textures, glm::vec3 emissive_factor, float shininess)
+           std::vector<MeshTexture> textures, glm::vec3 emissive_factor, float shininess, float opacity,
+           glm::vec3 diffuse_factor)
     : m_emissive_factor(emissive_factor)
-    , m_shininess(shininess) {
+    , m_shininess(shininess)
+    , m_opacity(opacity)
+    , m_diffuse_factor(diffuse_factor) {
     // NOLINTBEGIN
     static_assert(std::is_trivial_v<Vertex>);
     uint32_t VAO, VBO, EBO;
@@ -71,6 +74,8 @@ void Mesh::draw(const Shader *shader) {
     }
     shader->set_vec3("emissiveFactor", m_emissive_factor);
     shader->set_float("shininess", m_shininess);
+    shader->set_float("opacity", m_opacity);
+    shader->set_vec3("diffuseFactor", m_diffuse_factor);
     CHECKED_GL_CALL(glBindVertexArray, m_vao);
     CHECKED_GL_CALL(glDrawElements, GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, (void *) 0);
     CHECKED_GL_CALL(glBindVertexArray, 0);

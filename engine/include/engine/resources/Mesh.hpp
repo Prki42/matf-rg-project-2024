@@ -48,6 +48,8 @@ public:
     */
     void draw(const Shader *shader);
 
+    bool is_transparent() const { return m_opacity < 1.0f; }
+
     /**
     * @brief Destroys the mesh in the OpenGL context.
     */
@@ -63,13 +65,16 @@ private:
     * @param shininess The shininess of the mesh.
     */
     Mesh(const std::vector<Vertex> &vertices, const std::vector<uint32_t> &indices,
-         std::vector<MeshTexture> textures, glm::vec3 emissive_factor = glm::vec3(0.0f), float shininess = 32.0f);
+         std::vector<MeshTexture> textures, glm::vec3 emissive_factor = glm::vec3(0.0f), float shininess = 32.0f,
+         float opacity = 1.0f, glm::vec3 diffuse_factor = glm::vec3(1.0f));
 
     uint32_t m_vao{0};
     uint32_t m_num_indices{0};
     std::vector<MeshTexture> m_textures;
     glm::vec3 m_emissive_factor{0.0f};
     float m_shininess{32.0f};
+    float m_opacity{1.0f};
+    glm::vec3 m_diffuse_factor{1.0f};
 };
 }// namespace engine::resources
 
