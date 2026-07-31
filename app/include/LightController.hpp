@@ -47,12 +47,14 @@ public:
     void apply(const engine::resources::Shader *shader) const;
 
     void set_shadow_resolution(int resolution) { m_shadow_resolution = resolution; }
+    bool &draw_debug() { return m_draw_debug; }
 
     static constexpr int SHADOW_MAP_BASE_UNIT = 8;
     static constexpr int SPOT_SHADOW_MAP_BASE_UNIT = 16;
 
 private:
     void begin_draw() override;
+    void draw() override;
 
     void setup_shadow_maps();
     void setup_spot_shadow_maps();
@@ -73,6 +75,7 @@ private:
     std::vector<ShadowMap> m_shadow_maps;
     std::vector<SpotShadowMap> m_spot_shadow_maps;
     int m_shadow_resolution = 1024;
+    bool m_draw_debug = false;
 };
 
 }// namespace app

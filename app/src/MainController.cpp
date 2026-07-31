@@ -3,6 +3,9 @@
 #include "LightController.hpp"
 #include "PostProcessController.hpp"
 #include "SceneController.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/fwd.hpp"
+#include "glm/trigonometric.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
@@ -20,45 +23,58 @@ void MainPlatformEventObserver::on_key(engine::platform::Key key) {
 void MainController::initialize() {
     engine::graphics::OpenGL::enable_depth_testing();
 
+    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     auto observer = std::make_unique<MainPlatformEventObserver>();
-    engine::core::Controller::get<engine::platform::PlatformController>()->register_platform_event_observer(
-            std::move(observer));
+    auto camera = engine::core::Controller::get<engine::graphics::GraphicsController>()->camera();
+    platform->register_platform_event_observer(std::move(observer));
+    platform->set_enable_cursor(false);
 
     auto post = engine::core::Controller::get<PostProcessController>();
     post->set_bloom(true);
     post->set_exposure(1.0f);
 
+    camera->Position = {2, 1, 6};
+
     auto lights = engine::core::Controller::get<LightController>();
-    auto &ceiling = lights->add_point_light();
-    ceiling.position = {0.0f, 4.0f, 0.0f};
-    ceiling.color = {0.6f, 0.6f, 1.0f};
-    ceiling.linear = 0.009f;
-    ceiling.casts_shadows = true;
 
-    auto &warm = lights->add_point_light();
-    warm.position = {3.0f, 2.0f, 7.0f};
-    warm.color = {1.0f, 0.5f, 0.2f};
-    warm.linear = 0.009f;
-    warm.casts_shadows = true;
+    auto &point1 = lights->add_point_light();
+    point1.position = {-5.6f, 3.0f, 6.4f};
+    point1.color = {0.8f, 0.8f, 1.0f};
+    point1.linear = 0.009f;
+    point1.quadratic= 0.2f;
+    point1.casts_shadows = true;
 
-    auto &spot = lights->add_spot_light();
-    spot.position = {0.4f, 1.0f, 0.0f};
-    spot.direction = {0.0f, 0.0f, 1.0f};
-    spot.color = {1.0f, 1.0f, 1.0f};
-    spot.cutOff = glm::cos(glm::radians(15.0f));
-    spot.outerCutOff = glm::cos(glm::radians(20.0f));
-    spot.linear = 0.09f;
-    spot.casts_shadows = true;
+    auto &point2 = lights->add_point_light();
+    point2.position = {2.5f, 3.0f, -0.5f};
+    point2.color = {1.0f, 1.0f, 1.0f};
+    point2.linear = 0.009f;
+    point2.quadratic= 0.2f;
+    point2.casts_shadows = true;
+
+    auto &wheatley_light = lights->add_spot_light();
+    wheatley_light.position = {1.7f, 2.0f, 4.0f};
+    wheatley_light.direction = {1.0f, 0.0f, 0.0f};
+    wheatley_light.color = {1.0f, 1.0f, 1.0f};
+    wheatley_light.cutOff = glm::cos(glm::radians(10.0f));
+    wheatley_light.outerCutOff = glm::cos(glm::radians(15.0f));
+    wheatley_light.linear = 0.027f;
+    wheatley_light.casts_shadows = true;
+    m_wheatley_light_index = static_cast<int>(lights->spot_lights().size()) - 1;
 
     auto scene = engine::core::Controller::get<SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
     scene->add_renderable(resources->model("room"));
     scene->add_renderable(resources->model("cube"),
-                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 2.0f}));
-    scene->add_renderable(resources->model("cube"),
-                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 4.0f}));
+                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 6.0f}));
+
+    auto moron_model = glm::mat4(1.0f);
+    moron_model = glm::translate(moron_model, {5.0f, 0.7f, 5.0f});
+    moron_model = glm::rotate(moron_model, glm::radians(200.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    moron_model = glm::rotate(moron_model, glm::radians(-20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    moron_model = glm::scale(moron_model, glm::vec3(0.05f));
     scene->add_renderable(resources->model("wheatley"),
-                          glm::scale(glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 4.0f}), glm::vec3(0.05f)));
+                          moron_model);
+    m_wheatley_renderable_index = static_cast<int>(scene->renderables().size()) - 1;
 }
 
 bool MainController::loop() {
@@ -71,13 +87,25 @@ bool MainController::loop() {
 
 void MainController::poll_events() {
     const auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
-    if (platform->key(engine::platform::KEY_F1).state() == engine::platform::Key::State::JustPressed) {
-        m_cursor_enabled = !m_cursor_enabled;
-        platform->set_enable_cursor(m_cursor_enabled);
+    if (platform->key(engine::platform::KEY_F).state() == engine::platform::Key::State::JustPressed) {
+        auto lights = engine::core::Controller::get<LightController>();
+        auto &wl = lights->spot_lights()[m_wheatley_light_index];
+        m_wheatley_light_on = !m_wheatley_light_on;
+        wl.color = m_wheatley_light_on ? glm::vec3(1.0f, 1.0f, 1.0f) : glm::vec3(0.0f);
     }
 }
 
 void MainController::update() {
+    auto scene = engine::core::Controller::get<SceneController>();
+    auto lights = engine::core::Controller::get<LightController>();
+    auto &transform = scene->renderables()[m_wheatley_renderable_index].transform;
+    auto &wl = lights->spot_lights()[m_wheatley_light_index];
+
+    glm::vec3 eye_local(14.0f, 26.0f, 0.0f);
+    glm::vec3 dir_local(1.0f, 0.0f, 0.0f);
+    wl.position = glm::vec3(transform * glm::vec4(eye_local, 1.0f));
+    wl.direction = glm::normalize(glm::mat3(transform) * dir_local);
+
     update_camera();
 }
 
@@ -121,7 +149,7 @@ void MainController::update_camera() {
         camera->move_camera(engine::graphics::Camera::Movement::DOWN, dt);
     }
     auto mouse = platform->mouse();
-    if (!m_cursor_enabled) {
+    if (!engine::core::Controller::get<GUIController>()->is_enabled()) {
         camera->rotate_camera(mouse.dx, mouse.dy);
     }
     camera->zoom(mouse.scroll);

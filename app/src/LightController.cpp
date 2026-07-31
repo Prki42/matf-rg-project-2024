@@ -1,5 +1,6 @@
 #include "LightController.hpp"
 #include "SceneController.hpp"
+#include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
 #include <engine/resources/ResourcesController.hpp>
 #include <format>
@@ -129,6 +130,32 @@ void LightController::begin_draw() {
     // set viewport/framebuffer to their original values
     engine::graphics::OpenGL::bind_framebuffer(prev_fbo);
     engine::graphics::OpenGL::set_viewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+}
+
+void LightController::draw() {
+    if (!m_draw_debug) return;
+
+    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    auto shader = resources->shader("light_debug");
+    auto cube = resources->model("cube");
+
+    shader->use();
+    shader->set_mat4("projection", graphics->projection_matrix());
+    shader->set_mat4("view", graphics->camera()->view_matrix());
+
+    for (auto &pl : m_point_lights) {
+        auto model = glm::scale(glm::translate(glm::mat4(1.0f), pl.position), glm::vec3(0.1f));
+        shader->set_mat4("model", model);
+        shader->set_vec3("lightColor", pl.color);
+        cube->draw(shader);
+    }
+    for (auto &sl : m_spot_lights) {
+        auto model = glm::scale(glm::translate(glm::mat4(1.0f), sl.position), glm::vec3(0.1f));
+        shader->set_mat4("model", model);
+        shader->set_vec3("lightColor", sl.color);
+        cube->draw(shader);
+    }
 }
 
 void LightController::apply(const engine::resources::Shader *shader) const {

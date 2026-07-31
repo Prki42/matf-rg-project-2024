@@ -78,6 +78,10 @@ void GUIController::end_draw() {
         }
     }
 
+    if (ImGui::CollapsingHeader("Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Checkbox("Show Light Positions", &lights->draw_debug());
+    }
+
     ImGui::End();
     graphics->end_gui();
 }

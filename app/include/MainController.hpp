@@ -30,7 +30,9 @@ private:
 
     void update_camera();
 
-    bool m_cursor_enabled{true};
+    int m_wheatley_light_index{-1};
+    int m_wheatley_renderable_index{-1};
+    bool m_wheatley_light_on{true};
 };
 }// namespace app
 

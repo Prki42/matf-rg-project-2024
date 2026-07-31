@@ -50,9 +50,11 @@ uniform int texture_normal1_uv;
 uniform int texture_specular1_uv;
 uniform int texture_emissive1_uv;
 uniform vec3 emissiveFactor;
+uniform vec3 diffuseFactor;
 uniform float shininess;
+uniform float opacity;
 
-#define MAX_POINT_LIGHTS 8
+#define MAX_POINT_LIGHTS 4
 #define MAX_SPOT_LIGHTS 4
 
 struct PointLight {
@@ -133,8 +135,11 @@ void main() {
     // which coordinates to use for emissive map
     vec2 emissiveUV = texture_emissive1_uv == 1 ? TexCoords2 : TexCoords;
 
-    // currently diffuse always uses TexCoords - should be changed later for generality
-    vec3 color = texture(texture_diffuse1, TexCoords).rgb;
+    vec4 diffuseSample = texture(texture_diffuse1, TexCoords);
+    vec3 color = diffuseSample.rgb * diffuseFactor;
+
+    if (opacity < 1.0)
+        discard;
 
     vec3 specColor = texture(texture_specular1, specUV).rgb;
     vec3 emission = texture(texture_emissive1, emissiveUV).rgb;
@@ -173,7 +178,7 @@ void main() {
             else if (i == 3) closestDepth = texture(spotShadowMaps[3], projCoords.xy).r;
             float currentDepth = projCoords.z;
             vec3 spotLightDir = normalize(spotLights[i].position - FragPos);
-            float bias = max(0.005 * (1.0 - dot(normal, spotLightDir)), 0.001);
+            float bias = max(0.001 * (1.0 - dot(normal, spotLightDir)), 0.0001);
             spotShadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
             if (projCoords.z > 1.0) spotShadow = 0.0;
         }
@@ -182,17 +187,7 @@ void main() {
 
     result += emission * emissiveFactor;
 
-    // useful for debugging
-    // FragColor = vec4(normal * 0.5 + 0.5, 1.0);
-    // FragColor = vec4(texture(texture_normal1, normalUV).rgb, 1.0);
-    // FragColor = vec4(color, 1.0);
-    // FragColor = vec4(specColor, 1.0);
-    // FragColor = vec4(TBN[0] * 0.5 + 0.5, 1.0);
-    // FragColor = vec4(TBN[2] * 0.5 + 0.5, 1.0);
-
-    // FragColor = vec4(emission * emissiveFactor, 1.0);
-
-    FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, 1);
 
     float emBright = dot(emission * emissiveFactor, vec3(0.2126, 0.7152, 0.0722));
     float totalBright = dot(result, vec3(0.2126, 0.7152, 0.0722));
