@@ -63,8 +63,8 @@ void MainController::initialize() {
     wheatley_light.position = {1.7f, 2.0f, 4.0f};
     wheatley_light.direction = {1.0f, 0.0f, 0.0f};
     wheatley_light.color = {1.0f, 1.0f, 1.0f};
-    wheatley_light.cutOff = glm::cos(glm::radians(10.0f));
-    wheatley_light.outerCutOff = glm::cos(glm::radians(15.0f));
+    wheatley_light.cutoff = glm::cos(glm::radians(10.0f));
+    wheatley_light.outer_cutoff = glm::cos(glm::radians(15.0f));
     wheatley_light.linear = 0.027f;
     wheatley_light.casts_shadows = true;
     m_wheatley_light_index = static_cast<int>(lights->spot_lights().size()) - 1;

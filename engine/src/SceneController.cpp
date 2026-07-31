@@ -8,7 +8,9 @@ Renderable &SceneController::add_renderable(engine::resources::Model *model, con
 
 void SceneController::render_all(const engine::resources::Shader *shader) {
     for (auto &r: m_renderables) {
-        if (!r.visible) continue;
+        if (!r.visible) {
+            continue;
+        }
         shader->set_mat4("model", r.transform);
         r.model->draw(shader);
     }

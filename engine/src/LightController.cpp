@@ -19,8 +19,9 @@ SpotLight &LightController::add_spot_light() {
 void LightController::setup_shadow_maps() {
     int needed = 0;
     for (auto &l: m_point_lights) {
-        if (l.casts_shadows)
+        if (l.casts_shadows) {
             ++needed;
+        }
     }
 
     while (static_cast<int>(m_shadow_maps.size()) < needed) {
@@ -34,8 +35,9 @@ void LightController::setup_shadow_maps() {
 void LightController::setup_spot_shadow_maps() {
     int needed = 0;
     for (auto &l: m_spot_lights) {
-        if (l.casts_shadows)
+        if (l.casts_shadows) {
             ++needed;
+        }
     }
 
     while (static_cast<int>(m_spot_shadow_maps.size()) < needed) {
@@ -76,9 +78,9 @@ void LightController::begin_draw() {
 
     int shadow_idx = 0;
     for (auto &light: m_point_lights) {
-        if (!light.casts_shadows)
+        if (!light.casts_shadows) {
             continue;
-
+        }
         auto &sm = m_shadow_maps[shadow_idx++];
         glm::mat4 shadow_proj = glm::perspective(glm::radians(90.0f), aspect, near, light.shadow_far);
         glm::vec3 pos = light.position;
@@ -109,12 +111,13 @@ void LightController::begin_draw() {
     auto depth_spot_shader = resources->shader("depth_spot");
     int spot_shadow_idx = 0;
     for (auto &light: m_spot_lights) {
-        if (!light.casts_shadows)
+        if (!light.casts_shadows) {
             continue;
+        }
 
         auto &sm = m_spot_shadow_maps[spot_shadow_idx++];
 
-        float fov = 2.0f * glm::acos(light.outerCutOff);
+        float fov = 2.0f * glm::acos(light.outer_cutoff);
         glm::mat4 light_proj = glm::perspective(fov, 1.0f, 0.1f, light.shadow_far);
 
         glm::vec3 up = glm::abs(glm::dot(light.direction, glm::vec3(0, 1, 0))) > 0.99f
@@ -140,7 +143,9 @@ void LightController::begin_draw() {
 }
 
 void LightController::draw() {
-    if (!m_draw_debug) return;
+    if (!m_draw_debug) {
+        return;
+    }
 
     auto graphics = engine::core::Controller::get<GraphicsController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
@@ -200,8 +205,8 @@ void LightController::apply(const engine::resources::Shader *shader) const {
         shader->set_vec3(prefix + "position", l.position);
         shader->set_vec3(prefix + "direction", l.direction);
         shader->set_vec3(prefix + "color", l.color);
-        shader->set_float(prefix + "cutOff", l.cutOff);
-        shader->set_float(prefix + "outerCutOff", l.outerCutOff);
+        shader->set_float(prefix + "cutOff", l.cutoff);
+        shader->set_float(prefix + "outerCutOff", l.outer_cutoff);
         shader->set_float(prefix + "constant", l.constant);
         shader->set_float(prefix + "linear", l.linear);
         shader->set_float(prefix + "quadratic", l.quadratic);
