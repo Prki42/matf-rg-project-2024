@@ -19,6 +19,7 @@ public:
 
 private:
     void initialize() override;
+    void terminate() override;
     void begin_draw() override;
     void end_draw() override;
 

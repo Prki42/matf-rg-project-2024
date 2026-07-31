@@ -46,6 +46,17 @@ void LightController::setup_spot_shadow_maps() {
     }
 }
 
+void LightController::terminate() {
+    for (auto &sm: m_shadow_maps) {
+        OpenGL::delete_framebuffer(sm.fbo);
+        OpenGL::delete_texture(sm.cubemap);
+    }
+    for (auto &sm: m_spot_shadow_maps) {
+        OpenGL::delete_framebuffer(sm.fbo);
+        OpenGL::delete_texture(sm.texture);
+    }
+}
+
 void LightController::begin_draw() {
     setup_shadow_maps();
     setup_spot_shadow_maps();

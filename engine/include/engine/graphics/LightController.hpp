@@ -53,6 +53,7 @@ public:
     static constexpr int SPOT_SHADOW_MAP_BASE_UNIT = 16;
 
 private:
+    void terminate() override;
     void begin_draw() override;
     void draw() override;
 

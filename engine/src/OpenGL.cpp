@@ -327,6 +327,24 @@ void OpenGL::bind_texture_2d(uint32_t unit, uint32_t texture) {
     CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
 }
 
+void OpenGL::delete_framebuffer(uint32_t fbo) {
+    if (fbo) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 1, &fbo);
+    }
+}
+
+void OpenGL::delete_texture(uint32_t texture) {
+    if (texture) {
+        CHECKED_GL_CALL(glDeleteTextures, 1, &texture);
+    }
+}
+
+void OpenGL::delete_vao(uint32_t vao) {
+    if (vao) {
+        CHECKED_GL_CALL(glDeleteVertexArrays, 1, &vao);
+    }
+}
+
 void OpenGL::cull_front_faces() {
     CHECKED_GL_CALL(glEnable, GL_CULL_FACE);
     CHECKED_GL_CALL(glCullFace, GL_FRONT);

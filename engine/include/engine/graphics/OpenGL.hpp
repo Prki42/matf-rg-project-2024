@@ -160,6 +160,12 @@ public:
 
     static void bind_texture_2d(uint32_t unit, uint32_t texture);
 
+    static void delete_framebuffer(uint32_t fbo);
+
+    static void delete_texture(uint32_t texture);
+
+    static void delete_vao(uint32_t vao);
+
     static void cull_front_faces();
 
     static void cull_back_faces();

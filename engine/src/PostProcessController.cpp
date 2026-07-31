@@ -9,6 +9,15 @@ void PostProcessController::initialize() {
     m_quad_vao = OpenGL::create_screen_quad();
 }
 
+void PostProcessController::terminate() {
+    OpenGL::destroy_hdr_framebuffer(m_hdr_fb);
+    OpenGL::destroy_ping_pong_buffers(m_ping_pong);
+    if (m_quad_vao) {
+        OpenGL::delete_vao(m_quad_vao);
+        m_quad_vao = 0;
+    }
+}
+
 void PostProcessController::begin_draw() {
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     int width = platform->window()->width();
