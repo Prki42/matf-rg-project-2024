@@ -12,6 +12,10 @@
       "wheatley": {
         "path": "wheatley/wheatley.obj",
         "flip_uvs": true
+      },
+      "temple": {
+        "path": "temple/scene.gltf",
+        "flip_uvs": true
       }
     }
   },

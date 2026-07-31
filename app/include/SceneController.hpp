@@ -12,6 +12,7 @@ namespace app {
 struct Renderable {
     engine::resources::Model *model;
     glm::mat4 transform{1.0f};
+    bool visible{true};
 };
 
 class SceneController final : public engine::core::Controller {

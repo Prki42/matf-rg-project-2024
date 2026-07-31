@@ -41,15 +41,23 @@ void MainController::initialize() {
     point1.position = {-5.6f, 3.0f, 6.4f};
     point1.color = {0.8f, 0.8f, 1.0f};
     point1.linear = 0.009f;
-    point1.quadratic= 0.2f;
+    point1.quadratic = 0.2f;
     point1.casts_shadows = true;
 
     auto &point2 = lights->add_point_light();
     point2.position = {2.5f, 3.0f, -0.5f};
     point2.color = {1.0f, 1.0f, 1.0f};
     point2.linear = 0.009f;
-    point2.quadratic= 0.2f;
+    point2.quadratic = 0.2f;
     point2.casts_shadows = true;
+
+    auto &point3 = lights->add_point_light();
+    point3.position = {2.3f, 1.4f, 15.6f};
+    point3.color = {0.0f, 0.0f, 0.0f};
+    point3.linear = 0.009f;
+    point3.quadratic = 0.2f;
+    point3.casts_shadows = true;
+    m_point3_index = static_cast<int>(lights->point_lights().size()) - 1;
 
     auto &wheatley_light = lights->add_spot_light();
     wheatley_light.position = {1.7f, 2.0f, 4.0f};
@@ -63,7 +71,14 @@ void MainController::initialize() {
 
     auto scene = engine::core::Controller::get<SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    auto temple_model = glm::mat4(1.0);
+    temple_model = glm::translate(temple_model, {-1.0f, 1.0f, 15.0f});
+    temple_model = glm::rotate(temple_model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    temple_model = glm::scale(temple_model, glm::vec3{0.004f});
     scene->add_renderable(resources->model("room"));
+    auto &temple_renderable = scene->add_renderable(resources->model("temple"), temple_model);
+    temple_renderable.visible = false;
+    m_temple_renderable_index = static_cast<int>(scene->renderables().size()) - 1;
     scene->add_renderable(resources->model("cube"),
                           glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 6.0f}));
 
@@ -93,9 +108,16 @@ void MainController::poll_events() {
         m_wheatley_light_on = !m_wheatley_light_on;
         wl.color = m_wheatley_light_on ? glm::vec3(1.0f, 1.0f, 1.0f) : glm::vec3(0.0f);
     }
+    if (platform->key(engine::platform::KEY_E).state() == engine::platform::Key::State::JustPressed) {
+        if (m_event_state == EventState::IDLE) {
+            m_event_state = EventState::TEMPLE_WAIT;
+            m_event_timer = 0.0f;
+        }
+    }
 }
 
 void MainController::update() {
+    auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     auto scene = engine::core::Controller::get<SceneController>();
     auto lights = engine::core::Controller::get<LightController>();
     auto &transform = scene->renderables()[m_wheatley_renderable_index].transform;
@@ -105,6 +127,34 @@ void MainController::update() {
     glm::vec3 dir_local(1.0f, 0.0f, 0.0f);
     wl.position = glm::vec3(transform * glm::vec4(eye_local, 1.0f));
     wl.direction = glm::normalize(glm::mat3(transform) * dir_local);
+
+    if (m_event_state != EventState::IDLE) {
+        m_event_timer += platform->dt();
+
+        if (m_event_state == EventState::TEMPLE_WAIT && m_event_timer >= 1.0f) {
+            scene->renderables()[m_temple_renderable_index].visible = true;
+            m_event_timer = 0.0f;
+            m_event_state = EventState::DIM_WAIT;
+        } else if (m_event_state == EventState::DIM_WAIT && m_event_timer >= 2.0f) {
+            auto &points = lights->point_lights();
+            m_saved_point_colors.clear();
+            for (auto &p: points) {
+                m_saved_point_colors.push_back(p.color);
+            }
+            points[0].color = {1.0f, 0.0f, 0.0f};
+            points[1].color = {1.0f, 0.0f, 0.0f};
+            points[m_point3_index].color = {1.0f, 0.0f, 0.0f};
+            m_event_timer = 0.0f;
+            m_event_state = EventState::RESTORE_WAIT;
+        } else if (m_event_state == EventState::RESTORE_WAIT && m_event_timer >= 3.0f) {
+            auto &points = lights->point_lights();
+            for (int i = 0; i < static_cast<int>(m_saved_point_colors.size()); ++i) {
+                points[i].color = m_saved_point_colors[i];
+            }
+            scene->renderables()[m_temple_renderable_index].visible = false;
+            m_event_state = EventState::IDLE;
+        }
+    }
 
     update_camera();
 }
