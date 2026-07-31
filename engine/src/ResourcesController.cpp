@@ -248,6 +248,13 @@ void AssimpSceneProcessor::process_mesh(aiMesh *mesh, const aiMatrix4x4 &transfo
             vertex.Bitangent.x = bitan.x;
             vertex.Bitangent.y = bitan.y;
             vertex.Bitangent.z = bitan.z;
+        } else if (mesh->HasNormals()) {
+            glm::vec3 n = glm::normalize(glm::vec3(vertex.Normal.x, vertex.Normal.y, vertex.Normal.z));
+            glm::vec3 up = std::abs(n.y) < 0.999f ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
+            glm::vec3 t = glm::normalize(glm::cross(up, n));
+            glm::vec3 b = glm::cross(n, t);
+            vertex.Tangent = {t.x, t.y, t.z};
+            vertex.Bitangent = {b.x, b.y, b.z};
         }
 
         if (mesh->mTextureCoords[1]) {
