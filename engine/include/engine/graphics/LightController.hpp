@@ -1,5 +1,5 @@
-#ifndef LIGHTCONTROLLER_HPP
-#define LIGHTCONTROLLER_HPP
+#ifndef ENGINE_LIGHTCONTROLLER_HPP
+#define ENGINE_LIGHTCONTROLLER_HPP
 
 #include <cstdint>
 #include <engine/core/Controller.hpp>
@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace app {
+namespace engine::graphics {
 
 struct PointLight {
     glm::vec3 position{0.0f};
@@ -78,5 +78,5 @@ private:
     bool m_draw_debug = false;
 };
 
-}// namespace app
-#endif//LIGHTCONTROLLER_HPP
+}// namespace engine::graphics
+#endif//ENGINE_LIGHTCONTROLLER_HPP

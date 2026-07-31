@@ -1,20 +1,20 @@
 #include "Portal2Ep1.hpp"
 #include "GUIController.hpp"
-#include "LightController.hpp"
 #include "MainController.hpp"
-#include "PostProcessController.hpp"
-#include "SceneController.hpp"
 #include <engine/core/App.hpp>
 #include <engine/core/Controller.hpp>
+#include <engine/graphics/LightController.hpp>
+#include <engine/graphics/PostProcessController.hpp>
+#include <engine/graphics/SceneController.hpp>
 #include <memory>
 
 namespace app {
 
 void Portal2Ep1::app_setup() {
-    auto scene = register_controller<SceneController>();
-    auto lights = register_controller<LightController>();
+    auto scene = register_controller<engine::graphics::SceneController>();
+    auto lights = register_controller<engine::graphics::LightController>();
     auto gui = register_controller<GUIController>();
-    auto post_process = register_controller<PostProcessController>();
+    auto post_process = register_controller<engine::graphics::PostProcessController>();
     auto main_controller = register_controller<MainController>();
     scene->after(engine::core::Controller::get<engine::core::EngineControllersEnd>());
     lights->after(scene);

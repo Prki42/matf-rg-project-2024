@@ -1,14 +1,14 @@
 #include "MainController.hpp"
 #include "GUIController.hpp"
-#include "LightController.hpp"
-#include "PostProcessController.hpp"
-#include "SceneController.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
 #include "glm/trigonometric.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
+#include <engine/graphics/LightController.hpp>
 #include <engine/graphics/OpenGL.hpp>
+#include <engine/graphics/PostProcessController.hpp>
+#include <engine/graphics/SceneController.hpp>
 #include <engine/platform/PlatformController.hpp>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -29,13 +29,13 @@ void MainController::initialize() {
     platform->register_platform_event_observer(std::move(observer));
     platform->set_enable_cursor(false);
 
-    auto post = engine::core::Controller::get<PostProcessController>();
+    auto post = engine::core::Controller::get<engine::graphics::PostProcessController>();
     post->set_bloom(true);
     post->set_exposure(1.0f);
 
     camera->Position = {2, 1, 6};
 
-    auto lights = engine::core::Controller::get<LightController>();
+    auto lights = engine::core::Controller::get<engine::graphics::LightController>();
 
     auto &point1 = lights->add_point_light();
     point1.position = {-5.6f, 3.0f, 6.4f};
@@ -69,7 +69,7 @@ void MainController::initialize() {
     wheatley_light.casts_shadows = true;
     m_wheatley_light_index = static_cast<int>(lights->spot_lights().size()) - 1;
 
-    auto scene = engine::core::Controller::get<SceneController>();
+    auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
     auto temple_model = glm::mat4(1.0);
     temple_model = glm::translate(temple_model, {-1.0f, 1.0f, 15.0f});
@@ -103,7 +103,7 @@ bool MainController::loop() {
 void MainController::poll_events() {
     const auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     if (platform->key(engine::platform::KEY_F).state() == engine::platform::Key::State::JustPressed) {
-        auto lights = engine::core::Controller::get<LightController>();
+        auto lights = engine::core::Controller::get<engine::graphics::LightController>();
         auto &wl = lights->spot_lights()[m_wheatley_light_index];
         m_wheatley_light_on = !m_wheatley_light_on;
         wl.color = m_wheatley_light_on ? glm::vec3(1.0f, 1.0f, 1.0f) : glm::vec3(0.0f);
@@ -118,8 +118,8 @@ void MainController::poll_events() {
 
 void MainController::update() {
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
-    auto scene = engine::core::Controller::get<SceneController>();
-    auto lights = engine::core::Controller::get<LightController>();
+    auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
+    auto lights = engine::core::Controller::get<engine::graphics::LightController>();
     auto &transform = scene->renderables()[m_wheatley_renderable_index].transform;
     auto &wl = lights->spot_lights()[m_wheatley_light_index];
 
@@ -162,13 +162,13 @@ void MainController::update() {
 void MainController::draw() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     auto shader = engine::core::Controller::get<engine::resources::ResourcesController>()->shader("basic");
-    auto scene = engine::core::Controller::get<SceneController>();
+    auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
 
     shader->use();
     shader->set_mat4("projection", graphics->projection_matrix());
     shader->set_mat4("view", graphics->camera()->view_matrix());
     shader->set_vec3("viewPos", graphics->camera()->Position);
-    engine::core::Controller::get<LightController>()->apply(shader);
+    engine::core::Controller::get<engine::graphics::LightController>()->apply(shader);
 
     scene->render_all(shader);
 }

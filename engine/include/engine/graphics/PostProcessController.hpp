@@ -1,10 +1,10 @@
-#ifndef POSTPROCESSCONTROLLER_HPP
-#define POSTPROCESSCONTROLLER_HPP
+#ifndef ENGINE_POSTPROCESSCONTROLLER_HPP
+#define ENGINE_POSTPROCESSCONTROLLER_HPP
 
 #include <engine/core/Controller.hpp>
 #include <engine/graphics/OpenGL.hpp>
 
-namespace app {
+namespace engine::graphics {
 
 class PostProcessController final : public engine::core::Controller {
 public:
@@ -27,12 +27,12 @@ private:
     bool m_bloom_enabled = false;
     float m_exposure = 1.0f;
 
-    engine::graphics::OpenGL::HdrFramebuffer m_hdr_fb;
-    engine::graphics::OpenGL::PingPongBuffers m_ping_pong;
+    OpenGL::HdrFramebuffer m_hdr_fb;
+    OpenGL::PingPongBuffers m_ping_pong;
     uint32_t m_quad_vao = 0;
     int m_fb_width = 0;
     int m_fb_height = 0;
 };
 
-}// namespace app
-#endif//POSTPROCESSCONTROLLER_HPP
+}// namespace engine::graphics
+#endif//ENGINE_POSTPROCESSCONTROLLER_HPP

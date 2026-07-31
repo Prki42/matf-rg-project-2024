@@ -1,12 +1,12 @@
-#include "LightController.hpp"
-#include "SceneController.hpp"
 #include <engine/graphics/GraphicsController.hpp>
+#include <engine/graphics/LightController.hpp>
 #include <engine/graphics/OpenGL.hpp>
+#include <engine/graphics/SceneController.hpp>
 #include <engine/resources/ResourcesController.hpp>
 #include <format>
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace app {
+namespace engine::graphics {
 
 PointLight &LightController::add_point_light() {
     return m_point_lights.emplace_back();
@@ -25,8 +25,8 @@ void LightController::setup_shadow_maps() {
 
     while (static_cast<int>(m_shadow_maps.size()) < needed) {
         ShadowMap sm;
-        sm.cubemap = engine::graphics::OpenGL::create_depth_cubemap(m_shadow_resolution);
-        sm.fbo = engine::graphics::OpenGL::create_depth_cubemap_fbo(sm.cubemap);
+        sm.cubemap = OpenGL::create_depth_cubemap(m_shadow_resolution);
+        sm.fbo = OpenGL::create_depth_cubemap_fbo(sm.cubemap);
         m_shadow_maps.push_back(sm);
     }
 }
@@ -40,8 +40,8 @@ void LightController::setup_spot_shadow_maps() {
 
     while (static_cast<int>(m_spot_shadow_maps.size()) < needed) {
         SpotShadowMap sm;
-        sm.texture = engine::graphics::OpenGL::create_depth_texture(m_shadow_resolution);
-        sm.fbo = engine::graphics::OpenGL::create_depth_texture_fbo(sm.texture);
+        sm.texture = OpenGL::create_depth_texture(m_shadow_resolution);
+        sm.fbo = OpenGL::create_depth_texture_fbo(sm.texture);
         m_spot_shadow_maps.push_back(sm);
     }
 }
@@ -53,14 +53,12 @@ void LightController::begin_draw() {
     auto scene = engine::core::Controller::get<SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
 
-    // save previous viewport/framebuffer
-    uint32_t prev_fbo = engine::graphics::OpenGL::current_framebuffer();
+    uint32_t prev_fbo = OpenGL::current_framebuffer();
     int prev_viewport[4];
-    engine::graphics::OpenGL::current_viewport(prev_viewport);
+    OpenGL::current_viewport(prev_viewport);
 
-    engine::graphics::OpenGL::cull_front_faces();
+    OpenGL::cull_front_faces();
 
-    // Point shadow pass
     auto depth_shader = resources->shader("depth");
     float aspect = 1.0f;
     float near = 0.1f;
@@ -83,9 +81,9 @@ void LightController::begin_draw() {
                 shadow_proj * glm::lookAt(pos, pos + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
         };
 
-        engine::graphics::OpenGL::set_viewport(0, 0, m_shadow_resolution, m_shadow_resolution);
-        engine::graphics::OpenGL::bind_framebuffer(sm.fbo);
-        engine::graphics::OpenGL::clear_depth_buffer();
+        OpenGL::set_viewport(0, 0, m_shadow_resolution, m_shadow_resolution);
+        OpenGL::bind_framebuffer(sm.fbo);
+        OpenGL::clear_depth_buffer();
 
         depth_shader->use();
         for (int i = 0; i < 6; ++i) {
@@ -97,7 +95,6 @@ void LightController::begin_draw() {
         scene->render_all(depth_shader);
     }
 
-    // Spot shadow pass
     auto depth_spot_shader = resources->shader("depth_spot");
     int spot_shadow_idx = 0;
     for (auto &light: m_spot_lights) {
@@ -115,9 +112,9 @@ void LightController::begin_draw() {
         glm::mat4 light_view = glm::lookAt(light.position, light.position + light.direction, up);
         sm.light_space_matrix = light_proj * light_view;
 
-        engine::graphics::OpenGL::set_viewport(0, 0, m_shadow_resolution, m_shadow_resolution);
-        engine::graphics::OpenGL::bind_framebuffer(sm.fbo);
-        engine::graphics::OpenGL::clear_depth_buffer();
+        OpenGL::set_viewport(0, 0, m_shadow_resolution, m_shadow_resolution);
+        OpenGL::bind_framebuffer(sm.fbo);
+        OpenGL::clear_depth_buffer();
 
         depth_spot_shader->use();
         depth_spot_shader->set_mat4("lightSpaceMatrix", sm.light_space_matrix);
@@ -125,17 +122,16 @@ void LightController::begin_draw() {
         scene->render_all(depth_spot_shader);
     }
 
-    engine::graphics::OpenGL::cull_back_faces();
+    OpenGL::cull_back_faces();
 
-    // set viewport/framebuffer to their original values
-    engine::graphics::OpenGL::bind_framebuffer(prev_fbo);
-    engine::graphics::OpenGL::set_viewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
+    OpenGL::bind_framebuffer(prev_fbo);
+    OpenGL::set_viewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]);
 }
 
 void LightController::draw() {
     if (!m_draw_debug) return;
 
-    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+    auto graphics = engine::core::Controller::get<GraphicsController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
     auto shader = resources->shader("light_debug");
     auto cube = resources->model("cube");
@@ -144,13 +140,13 @@ void LightController::draw() {
     shader->set_mat4("projection", graphics->projection_matrix());
     shader->set_mat4("view", graphics->camera()->view_matrix());
 
-    for (auto &pl : m_point_lights) {
+    for (auto &pl: m_point_lights) {
         auto model = glm::scale(glm::translate(glm::mat4(1.0f), pl.position), glm::vec3(0.1f));
         shader->set_mat4("model", model);
         shader->set_vec3("lightColor", pl.color);
         cube->draw(shader);
     }
-    for (auto &sl : m_spot_lights) {
+    for (auto &sl: m_spot_lights) {
         auto model = glm::scale(glm::translate(glm::mat4(1.0f), sl.position), glm::vec3(0.1f));
         shader->set_mat4("model", model);
         shader->set_vec3("lightColor", sl.color);
@@ -159,8 +155,6 @@ void LightController::draw() {
 }
 
 void LightController::apply(const engine::resources::Shader *shader) const {
-    // Assign all shadow map samplers to unique units to prevent
-    // sampler type conflicts (samplerCube vs sampler2D on same unit = UB)
     for (int i = 0; i < 8; ++i) {
         shader->set_int(std::format("pointShadowMaps[{}]", i), SHADOW_MAP_BASE_UNIT + i);
     }
@@ -182,7 +176,7 @@ void LightController::apply(const engine::resources::Shader *shader) const {
         shader->set_float(prefix + "shadowFar", l.shadow_far);
 
         if (l.casts_shadows && shadow_idx < static_cast<int>(m_shadow_maps.size())) {
-            engine::graphics::OpenGL::bind_texture_cube_map(SHADOW_MAP_BASE_UNIT + i, m_shadow_maps[shadow_idx].cubemap);
+            OpenGL::bind_texture_cube_map(SHADOW_MAP_BASE_UNIT + i, m_shadow_maps[shadow_idx].cubemap);
             ++shadow_idx;
         }
     }
@@ -203,12 +197,12 @@ void LightController::apply(const engine::resources::Shader *shader) const {
         shader->set_int(prefix + "castsShadows", l.casts_shadows ? 1 : 0);
 
         if (l.casts_shadows && spot_shadow_idx < static_cast<int>(m_spot_shadow_maps.size())) {
-            engine::graphics::OpenGL::bind_texture_2d(SPOT_SHADOW_MAP_BASE_UNIT + i,
-                                                      m_spot_shadow_maps[spot_shadow_idx].texture);
+            OpenGL::bind_texture_2d(SPOT_SHADOW_MAP_BASE_UNIT + i,
+                                    m_spot_shadow_maps[spot_shadow_idx].texture);
             shader->set_mat4(prefix + "lightSpaceMatrix", m_spot_shadow_maps[spot_shadow_idx].light_space_matrix);
             ++spot_shadow_idx;
         }
     }
 }
 
-}// namespace app
+}// namespace engine::graphics

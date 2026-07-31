@@ -1,5 +1,5 @@
-#ifndef SCENECONTROLLER_HPP
-#define SCENECONTROLLER_HPP
+#ifndef ENGINE_SCENECONTROLLER_HPP
+#define ENGINE_SCENECONTROLLER_HPP
 
 #include <engine/core/Controller.hpp>
 #include <engine/resources/Model.hpp>
@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-namespace app {
+namespace engine::graphics {
 
 struct Renderable {
     engine::resources::Model *model;
@@ -32,5 +32,5 @@ private:
     std::vector<Renderable> m_renderables;
 };
 
-}// namespace app
-#endif//SCENECONTROLLER_HPP
+}// namespace engine::graphics
+#endif//ENGINE_SCENECONTROLLER_HPP

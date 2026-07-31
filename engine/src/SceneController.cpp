@@ -1,6 +1,6 @@
-#include "SceneController.hpp"
+#include <engine/graphics/SceneController.hpp>
 
-namespace app {
+namespace engine::graphics {
 
 Renderable &SceneController::add_renderable(engine::resources::Model *model, const glm::mat4 &transform) {
     return m_renderables.emplace_back(Renderable{model, transform});
@@ -14,4 +14,4 @@ void SceneController::render_all(const engine::resources::Shader *shader) {
     }
 }
 
-}// namespace app
+}// namespace engine::graphics

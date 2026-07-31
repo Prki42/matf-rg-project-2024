@@ -1,8 +1,8 @@
 #include "GUIController.hpp"
-#include "LightController.hpp"
-#include "PostProcessController.hpp"
 #include <engine/core/Engine.hpp>
 #include <engine/graphics/GraphicsController.hpp>
+#include <engine/graphics/LightController.hpp>
+#include <engine/graphics/PostProcessController.hpp>
 #include <imgui.h>
 
 namespace app {
@@ -22,8 +22,8 @@ void GUIController::poll_events() {
 void GUIController::end_draw() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     auto camera = graphics->camera();
-    auto post = engine::core::Controller::get<PostProcessController>();
-    auto lights = engine::core::Controller::get<LightController>();
+    auto post = engine::core::Controller::get<engine::graphics::PostProcessController>();
+    auto lights = engine::core::Controller::get<engine::graphics::LightController>();
 
     graphics->begin_gui();
 
