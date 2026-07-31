@@ -40,7 +40,7 @@
           doxygen
           graphviz
 
-          python3
+          (python3.withPackages (ps: [ ps.libclang ]))
 
           # OpenGL wrapper for non-NixOS
           pkgs.nixgl.auto.nixGLDefault
