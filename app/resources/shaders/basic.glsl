@@ -146,7 +146,6 @@ void main() {
     vec3 viewDir = normalize(viewPos - FragPos);
 
     vec3 result = 0.1 * color;
-    // vec3 result = 0.0 * color;
 
     for (int i = 0; i < numPointLights; i++) {
         float shadow = 0.0;

@@ -16,10 +16,6 @@
 
 namespace app {
 
-void MainPlatformEventObserver::on_key(engine::platform::Key key) {
-    // spdlog::info("Keyboard event: key={}, state={}", key.name(), key.state_str());
-}
-
 void MainController::initialize() {
     engine::graphics::OpenGL::enable_depth_testing();
 
@@ -41,21 +37,21 @@ void MainController::initialize() {
     point1.position = {-5.6f, 3.0f, 6.4f};
     point1.color = {0.8f, 0.8f, 1.0f};
     point1.linear = 0.009f;
-    point1.quadratic = 0.2f;
+    point1.quadratic = 0.032f;
     point1.casts_shadows = true;
 
     auto &point2 = lights->add_point_light();
     point2.position = {2.5f, 3.0f, -0.5f};
     point2.color = {1.0f, 1.0f, 1.0f};
     point2.linear = 0.009f;
-    point2.quadratic = 0.2f;
+    point2.quadratic = 0.032f;
     point2.casts_shadows = true;
 
     auto &point3 = lights->add_point_light();
     point3.position = {2.3f, 1.4f, 15.6f};
     point3.color = {0.0f, 0.0f, 0.0f};
     point3.linear = 0.009f;
-    point3.quadratic = 0.2f;
+    point3.quadratic = 0.032f;
     point3.casts_shadows = true;
     m_point3_index = static_cast<int>(lights->point_lights().size()) - 1;
 
@@ -65,21 +61,22 @@ void MainController::initialize() {
     wheatley_light.color = {1.0f, 1.0f, 1.0f};
     wheatley_light.cutoff = glm::cos(glm::radians(10.0f));
     wheatley_light.outer_cutoff = glm::cos(glm::radians(15.0f));
-    wheatley_light.linear = 0.027f;
+    wheatley_light.linear = 0.009f;
+    wheatley_light.quadratic = 0.032f;
     wheatley_light.casts_shadows = true;
     m_wheatley_light_index = static_cast<int>(lights->spot_lights().size()) - 1;
 
     auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
 
-    auto temple_model = glm::mat4(1.0);
+    auto temple_model = glm::mat4{1.0};
     temple_model = glm::translate(temple_model, {-1.0f, 1.0f, 15.0f});
-    temple_model = glm::rotate(temple_model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    temple_model = glm::rotate(temple_model, glm::radians(180.0f), {0.0f, 1.0f, 0.0f});
     temple_model = glm::scale(temple_model, glm::vec3{0.004f});
 
-    auto turret_model = glm::mat4(1.0);
+    auto turret_model = glm::mat4{1.0};
     turret_model = glm::translate(turret_model, {-5.0f, 0.0f, 8.0f});
-    turret_model = glm::rotate(turret_model, glm::radians(70.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    turret_model = glm::rotate(turret_model, glm::radians(70.0f), {0.0f, 1.0f, 0.0f});
     turret_model = glm::scale(turret_model, glm::vec3{0.05f});
 
     scene->add_renderable(resources->model("room"));
@@ -90,13 +87,13 @@ void MainController::initialize() {
 
     scene->add_renderable(resources->model("turret"), turret_model);
     scene->add_renderable(resources->model("cube"),
-                          glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 6.0f}));
+                          glm::translate(glm::mat4{1.0f}, {1.0f, 0.7f, 6.0f}));
 
-    auto moron_model = glm::mat4(1.0f);
+    auto moron_model = glm::mat4{1.0f};
     moron_model = glm::translate(moron_model, {5.0f, 0.7f, 5.0f});
-    moron_model = glm::rotate(moron_model, glm::radians(200.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    moron_model = glm::rotate(moron_model, glm::radians(-20.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    moron_model = glm::scale(moron_model, glm::vec3(0.05f));
+    moron_model = glm::rotate(moron_model, glm::radians(200.0f), {0.0f, 1.0f, 0.0f});
+    moron_model = glm::rotate(moron_model, glm::radians(-20.0f), {0.0f, 0.0f, 1.0f});
+    moron_model = glm::scale(moron_model, glm::vec3{0.05f});
     scene->add_renderable(resources->model("wheatley"),
                           moron_model);
     m_wheatley_renderable_index = static_cast<int>(scene->renderables().size()) - 1;
@@ -116,7 +113,7 @@ void MainController::poll_events() {
         auto lights = engine::core::Controller::get<engine::graphics::LightController>();
         auto &wl = lights->spot_lights()[m_wheatley_light_index];
         m_wheatley_light_on = !m_wheatley_light_on;
-        wl.color = m_wheatley_light_on ? glm::vec3(1.0f, 1.0f, 1.0f) : glm::vec3(0.0f);
+        wl.color = m_wheatley_light_on ? glm::vec3{1.0f, 1.0f, 1.0f} : glm::vec3{0.0f};
     }
     if (platform->key(engine::platform::KEY_E).state() == engine::platform::Key::State::JustPressed) {
         if (m_event_state == EventState::IDLE) {
@@ -133,10 +130,10 @@ void MainController::update() {
     auto &transform = scene->renderables()[m_wheatley_renderable_index].transform;
     auto &wl = lights->spot_lights()[m_wheatley_light_index];
 
-    glm::vec3 eye_local(14.0f, 26.0f, 0.0f);
-    glm::vec3 dir_local(1.0f, 0.0f, 0.0f);
-    wl.position = glm::vec3(transform * glm::vec4(eye_local, 1.0f));
-    wl.direction = glm::normalize(glm::mat3(transform) * dir_local);
+    glm::vec3 eye_local{14.0f, 26.0f, 0.0f};
+    glm::vec3 dir_local{1.0f, 0.0f, 0.0f};
+    wl.position = glm::vec3{transform * glm::vec4{eye_local, 1.0f}};
+    wl.direction = glm::normalize(glm::mat3{transform} * dir_local);
 
     if (m_event_state != EventState::IDLE) {
         m_event_timer += platform->dt();

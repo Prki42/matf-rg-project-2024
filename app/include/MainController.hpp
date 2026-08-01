@@ -9,8 +9,6 @@
 
 namespace app {
 class MainPlatformEventObserver final : public engine::platform::PlatformEventObserver {
-public:
-    void on_key(engine::platform::Key key) override;
 };
 
 class MainController final : public engine::core::Controller {
