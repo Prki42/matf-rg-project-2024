@@ -21,15 +21,15 @@ public:
         return "SceneController";
     }
 
-    Renderable &add_renderable(engine::resources::Model *model, const glm::mat4 &transform = glm::mat4(1.0f));
+    Renderable *add_renderable(engine::resources::Model *model, const glm::mat4 &transform = glm::mat4(1.0f));
 
     void render_all(const engine::resources::Shader *shader);
 
-    std::vector<Renderable> &renderables() { return m_renderables; }
-    const std::vector<Renderable> &renderables() const { return m_renderables; }
+    std::vector<std::unique_ptr<Renderable>> &renderables() { return m_renderables; }
+    const std::vector<std::unique_ptr<Renderable>> &renderables() const { return m_renderables; }
 
 private:
-    std::vector<Renderable> m_renderables;
+    std::vector<std::unique_ptr<Renderable>> m_renderables;
 };
 
 }// namespace engine::graphics

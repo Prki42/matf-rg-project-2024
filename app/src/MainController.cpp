@@ -81,8 +81,8 @@ void MainController::initialize() {
 
     scene->add_renderable(resources->model("room"));
 
-    auto &temple_renderable = scene->add_renderable(resources->model("temple"), temple_model);
-    temple_renderable.visible = false;
+    auto *temple_renderable = scene->add_renderable(resources->model("temple"), temple_model);
+    temple_renderable->visible = false;
     m_temple_renderable_index = static_cast<int>(scene->renderables().size()) - 1;
 
     scene->add_renderable(resources->model("turret"), turret_model);
@@ -127,7 +127,7 @@ void MainController::update() {
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
     auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
     auto lights = engine::core::Controller::get<engine::graphics::LightController>();
-    auto &transform = scene->renderables()[m_wheatley_renderable_index].transform;
+    auto &transform = scene->renderables()[m_wheatley_renderable_index]->transform;
     auto &wl = lights->spot_lights()[m_wheatley_light_index];
 
     glm::vec3 eye_local{14.0f, 26.0f, 0.0f};
@@ -139,7 +139,7 @@ void MainController::update() {
         m_event_timer += platform->dt();
 
         if (m_event_state == EventState::TEMPLE_WAIT && m_event_timer >= 1.0f) {
-            scene->renderables()[m_temple_renderable_index].visible = true;
+            scene->renderables()[m_temple_renderable_index]->visible = true;
             m_event_timer = 0.0f;
             m_event_state = EventState::DIM_WAIT;
         } else if (m_event_state == EventState::DIM_WAIT && m_event_timer >= 2.0f) {
@@ -158,7 +158,7 @@ void MainController::update() {
             for (int i = 0; i < static_cast<int>(m_saved_point_colors.size()); ++i) {
                 points[i].color = m_saved_point_colors[i];
             }
-            scene->renderables()[m_temple_renderable_index].visible = false;
+            scene->renderables()[m_temple_renderable_index]->visible = false;
             m_event_state = EventState::IDLE;
         }
     }
