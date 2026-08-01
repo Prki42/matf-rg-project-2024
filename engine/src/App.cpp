@@ -38,13 +38,13 @@ void App::engine_setup(int argc, char **argv) {
     auto platform = register_controller<platform::PlatformController>();
     auto graphics = register_controller<graphics::GraphicsController>();
     auto resources = register_controller<resources::ResourcesController>();
-    auto postporcessing = register_controller<graphics::PostProcessController>();
     auto end = register_controller<EngineControllersEnd>();
+    auto post_processing = register_controller<graphics::PostProcessController>();
     begin->before(platform);
     platform->before(graphics);
     graphics->before(resources);
-    resources->before(postporcessing);
-    postporcessing->before(end);
+    resources->before(end);
+    end->before(post_processing);
 }
 
 void App::initialize() {
