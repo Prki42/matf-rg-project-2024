@@ -54,7 +54,7 @@ void LightController::begin_draw() {
 
     OpenGL::cull_front_faces();
 
-    auto depth_shader = resources->shader("depth");
+    auto depth_shader = resources->shader("engine/depth");
     float aspect = 1.0f;
     float near = 0.1f;
 
@@ -90,7 +90,7 @@ void LightController::begin_draw() {
         scene->render_all(depth_shader);
     }
 
-    auto depth_spot_shader = resources->shader("depth_spot");
+    auto depth_spot_shader = resources->shader("engine/depth_spot");
     int spot_shadow_idx = 0;
     for (auto &light: m_spot_lights) {
         if (!light.casts_shadows) {
@@ -131,7 +131,7 @@ void LightController::draw() {
 
     auto graphics = engine::core::Controller::get<GraphicsController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
-    auto shader = resources->shader("light_debug");
+    auto shader = resources->shader("engine/light_debug");
     auto cube = resources->model("cube");
 
     shader->use();

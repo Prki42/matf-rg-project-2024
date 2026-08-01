@@ -12,13 +12,32 @@
 #include <spdlog/spdlog.h>
 #include <utility>
 
+#include <bloom_final_glsl.h>
+#include <blur_glsl.h>
+#include <depth_glsl.h>
+#include <depth_spot_glsl.h>
+#include <light_debug_glsl.h>
+
 namespace engine::resources {
 
 void ResourcesController::initialize() {
+    load_engine_shaders();
     load_shaders();
     load_models();
     load_textures();
     load_skyboxes();
+}
+
+void ResourcesController::load_engine_shaders() {
+    auto register_shader = [this](const std::string &name, const unsigned char *data, unsigned int len) {
+        std::string source(reinterpret_cast<const char *>(data), len);
+        m_shaders[name] = std::make_unique<Shader>(ShaderCompiler::compile_from_source(name, std::move(source)));
+    };
+    register_shader("engine/depth", depth_glsl, depth_glsl_len);
+    register_shader("engine/depth_spot", depth_spot_glsl, depth_spot_glsl_len);
+    register_shader("engine/blur", blur_glsl, blur_glsl_len);
+    register_shader("engine/bloom_final", bloom_final_glsl, bloom_final_glsl_len);
+    register_shader("engine/light_debug", light_debug_glsl, light_debug_glsl_len);
 }
 
 void ResourcesController::terminate() {

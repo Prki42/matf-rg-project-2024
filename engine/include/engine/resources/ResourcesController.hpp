@@ -105,6 +105,8 @@ private:
     */
     void load_shaders();
 
+    void load_engine_shaders();
+
     /**
     * @brief A hashmap of all the loaded @ref Model.
     */

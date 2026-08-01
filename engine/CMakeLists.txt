@@ -27,7 +27,27 @@ add_subdirectory(libs/stb EXCLUDE_FROM_ALL)
 add_subdirectory(libs/imgui EXCLUDE_FROM_ALL)
 add_subdirectory(libs/glm EXCLUDE_FROM_ALL)
 
+################ Embedded engine shaders ################
+set(ENGINE_SHADERS depth depth_spot blur bloom_final light_debug)
+set(ENGINE_SHADER_HEADERS "")
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/generated)
+
+foreach(shader ${ENGINE_SHADERS})
+    set(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/${shader}.glsl)
+    set(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated/${shader}_glsl.h)
+    add_custom_command(
+        OUTPUT ${OUTPUT}
+        COMMAND xxd -i ${shader}.glsl > ${OUTPUT}
+        DEPENDS ${INPUT}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders
+    )
+    list(APPEND ENGINE_SHADER_HEADERS ${OUTPUT})
+endforeach()
+
+add_custom_target(engine-shaders DEPENDS ${ENGINE_SHADER_HEADERS})
+
 add_library(${PROJECT_NAME} ${engine-sources} ${engine-headers})
-target_include_directories(${PROJECT_NAME} PUBLIC include/)
+add_dependencies(${PROJECT_NAME} engine-shaders)
+target_include_directories(${PROJECT_NAME} PUBLIC include/ PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(${PROJECT_NAME} PRIVATE glad glfw assimp ${ASSIMP_LIBRARIES} stb
         PUBLIC glm::glm-header-only spdlog::spdlog imgui json)

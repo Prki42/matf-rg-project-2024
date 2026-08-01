@@ -45,7 +45,7 @@ void PostProcessController::end_draw() {
     OpenGL::clear_buffers();
 
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
-    auto bloom_shader = resources->shader("bloom_final");
+    auto bloom_shader = resources->shader("engine/bloom_final");
     bloom_shader->use();
     OpenGL::bind_texture_2d(0, m_hdr_fb.color_buffers[0]);
     OpenGL::bind_texture_2d(1, m_ping_pong.textures[0]);
@@ -58,7 +58,7 @@ void PostProcessController::end_draw() {
 
 void PostProcessController::render_bloom() {
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
-    auto blur_shader = resources->shader("blur");
+    auto blur_shader = resources->shader("engine/blur");
 
     int horizontal = 1;
     bool first_iteration = true;

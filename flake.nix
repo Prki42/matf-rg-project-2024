@@ -42,6 +42,8 @@
 
           (python3.withPackages (ps: [ ps.libclang ]))
 
+          xxd
+
           # OpenGL wrapper for non-NixOS
           pkgs.nixgl.auto.nixGLDefault
         ];
