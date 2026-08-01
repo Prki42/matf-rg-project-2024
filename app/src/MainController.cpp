@@ -71,14 +71,24 @@ void MainController::initialize() {
 
     auto scene = engine::core::Controller::get<engine::graphics::SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+
     auto temple_model = glm::mat4(1.0);
     temple_model = glm::translate(temple_model, {-1.0f, 1.0f, 15.0f});
     temple_model = glm::rotate(temple_model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     temple_model = glm::scale(temple_model, glm::vec3{0.004f});
+
+    auto turret_model = glm::mat4(1.0);
+    turret_model = glm::translate(turret_model, {-5.0f, 0.0f, 8.0f});
+    turret_model = glm::rotate(turret_model, glm::radians(70.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    turret_model = glm::scale(turret_model, glm::vec3{0.05f});
+
     scene->add_renderable(resources->model("room"));
+
     auto &temple_renderable = scene->add_renderable(resources->model("temple"), temple_model);
     temple_renderable.visible = false;
     m_temple_renderable_index = static_cast<int>(scene->renderables().size()) - 1;
+
+    scene->add_renderable(resources->model("turret"), turret_model);
     scene->add_renderable(resources->model("cube"),
                           glm::translate(glm::mat4(1.0f), {1.0f, 0.7f, 6.0f}));
 
