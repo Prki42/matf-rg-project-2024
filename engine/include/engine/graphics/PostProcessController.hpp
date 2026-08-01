@@ -13,6 +13,7 @@ public:
     }
 
     void set_bloom(bool enabled) { m_bloom_enabled = enabled; }
+    void set_bloom_iterations(int iterations) { m_bloom_iterations = iterations; }
     bool bloom() const { return m_bloom_enabled; }
     void set_exposure(float exposure) { m_exposure = exposure; }
     float exposure() const { return m_exposure; }
@@ -26,6 +27,7 @@ private:
     void render_bloom();
 
     bool m_bloom_enabled = false;
+    int m_bloom_iterations = 10;
     float m_exposure = 1.0f;
 
     OpenGL::HdrFramebuffer m_hdr_fb;

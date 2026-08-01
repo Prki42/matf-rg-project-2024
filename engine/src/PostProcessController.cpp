@@ -62,10 +62,9 @@ void PostProcessController::render_bloom() {
 
     int horizontal = 1;
     bool first_iteration = true;
-    int amount = 10;
     blur_shader->use();
     blur_shader->set_int("image", 0);
-    for (int i = 0; i < amount; i++) {
+    for (int i = 0; i < m_bloom_iterations; i++) {
         OpenGL::bind_framebuffer(m_ping_pong.fbo[horizontal]);
         blur_shader->set_int("horizontal", horizontal);
         OpenGL::bind_texture_2d(0,
