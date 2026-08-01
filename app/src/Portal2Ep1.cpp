@@ -15,10 +15,13 @@ void Portal2Ep1::app_setup() {
     auto lights = register_controller<engine::graphics::LightController>();
     auto gui = register_controller<GUIController>();
     auto main_controller = register_controller<MainController>();
+    auto post = register_controller<engine::graphics::PostProcessController>();
+
     scene->after(engine::core::Controller::get<engine::core::EngineControllersEnd>());
-    lights->after(scene);
-    gui->after(lights);
-    main_controller->after(gui);
+    scene->before(lights);
+    lights->before(gui);
+    gui->before(post);
+    post->before(main_controller);
 }
 
 }// namespace app

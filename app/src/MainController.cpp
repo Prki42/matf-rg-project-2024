@@ -167,6 +167,10 @@ void MainController::update() {
     update_camera();
 }
 
+void MainController::begin_draw() {
+    engine::graphics::OpenGL::clear_buffers();
+}
+
 void MainController::draw() {
     auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
     auto shader = engine::core::Controller::get<engine::resources::ResourcesController>()->shader("basic");
@@ -179,6 +183,10 @@ void MainController::draw() {
     engine::core::Controller::get<engine::graphics::LightController>()->apply(shader);
 
     scene->render_all(shader);
+}
+
+void MainController::end_draw() {
+    Controller::get<engine::platform::PlatformController>()->swap_buffers();
 }
 
 void MainController::update_camera() {

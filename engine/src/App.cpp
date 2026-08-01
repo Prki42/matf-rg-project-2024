@@ -1,4 +1,3 @@
-#include "engine/graphics/PostProcessController.hpp"
 #include <engine/core/App.hpp>
 #include <engine/platform/PlatformController.hpp>
 #include <engine/resources/ResourcesController.hpp>
@@ -39,12 +38,10 @@ void App::engine_setup(int argc, char **argv) {
     auto graphics = register_controller<graphics::GraphicsController>();
     auto resources = register_controller<resources::ResourcesController>();
     auto end = register_controller<EngineControllersEnd>();
-    auto post_processing = register_controller<graphics::PostProcessController>();
     begin->before(platform);
     platform->before(graphics);
     graphics->before(resources);
     resources->before(end);
-    end->before(post_processing);
 }
 
 void App::initialize() {
@@ -104,7 +101,6 @@ void App::draw() {
             controller->end_draw();
         }
     }
-    Controller::get<platform::PlatformController>()->swap_buffers();
 }
 
 void App::terminate() {

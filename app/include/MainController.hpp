@@ -25,6 +25,10 @@ private:
 
     void draw() override;
 
+    void begin_draw() override;
+
+    void end_draw() override;
+
     void update_camera();
 
     int m_wheatley_light_index{-1};
