@@ -1,5 +1,6 @@
 #include "MainController.hpp"
 #include "GUIController.hpp"
+#include "engine/platform/PlatformEventObserver.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
 #include "glm/trigonometric.hpp"
@@ -20,7 +21,7 @@ void MainController::initialize() {
     engine::graphics::OpenGL::enable_depth_testing();
 
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
-    auto observer = std::make_unique<MainPlatformEventObserver>();
+    auto observer = std::make_unique<engine::platform::PlatformEventObserver>();
     auto camera = engine::core::Controller::get<engine::graphics::GraphicsController>()->camera();
     platform->register_platform_event_observer(std::move(observer));
     platform->set_enable_cursor(false);

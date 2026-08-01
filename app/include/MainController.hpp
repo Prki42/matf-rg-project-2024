@@ -8,9 +8,6 @@
 #include <vector>
 
 namespace app {
-class MainPlatformEventObserver final : public engine::platform::PlatformEventObserver {
-};
-
 class MainController final : public engine::core::Controller {
 public:
     std::string_view name() const override {

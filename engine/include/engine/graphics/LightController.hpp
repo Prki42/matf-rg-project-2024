@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <engine/core/Controller.hpp>
+#include <engine/graphics/OpenGL.hpp>
 #include <engine/resources/Shader.hpp>
 #include <glm/glm.hpp>
 #include <vector>
@@ -49,8 +50,12 @@ public:
     void set_shadow_resolution(int resolution) { m_shadow_resolution = resolution; }
     bool &draw_debug() { return m_draw_debug; }
 
-    static constexpr int SHADOW_MAP_BASE_UNIT = 8;
+    static constexpr int POINT_SHADOW_MAP_BASE_UNIT = 8;
     static constexpr int SPOT_SHADOW_MAP_BASE_UNIT = 16;
+
+    // TODO inject in shader before it gets compiled
+    static constexpr int MAX_POINT_LIGHTS = 4;
+    static constexpr int MAX_SPOT_LIGHTS = 4;
 
 private:
     void terminate() override;
@@ -58,22 +63,31 @@ private:
     void draw() override;
 
     void setup_shadow_maps();
-    void setup_spot_shadow_maps();
 
-    struct ShadowMap {
+    struct PointShadowMap {
         uint32_t fbo = 0;
         uint32_t cubemap = 0;
+
+        void destroy() {
+            OpenGL::delete_framebuffer(fbo);
+            OpenGL::delete_texture(cubemap);
+        }
     };
 
     struct SpotShadowMap {
         uint32_t fbo = 0;
         uint32_t texture = 0;
         glm::mat4 light_space_matrix{1.0f};
+
+        void destroy() {
+            OpenGL::delete_framebuffer(fbo);
+            OpenGL::delete_texture(texture);
+        }
     };
 
     std::vector<PointLight> m_point_lights;
     std::vector<SpotLight> m_spot_lights;
-    std::vector<ShadowMap> m_shadow_maps;
+    std::vector<PointShadowMap> m_point_shadow_maps;
     std::vector<SpotShadowMap> m_spot_shadow_maps;
     int m_shadow_resolution = 1024;
     bool m_draw_debug = false;

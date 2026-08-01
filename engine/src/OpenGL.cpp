@@ -61,7 +61,7 @@ uint32_t OpenGL::generate_normal_from_height(const std::filesystem::path &path, 
                                 std::format("Failed to load height map {}", path.string()));
     }
 
-    auto *normals = new uint8_t[width * height * 3];
+    std::vector<uint8_t> normals(width * height * 3);
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
             // height values around (x,y)
@@ -70,36 +70,26 @@ uint32_t OpenGL::generate_normal_from_height(const std::filesystem::path &path, 
             int down = data[((y - 1 + height) % height) * width + x];
             int up = data[((y + 1) % height) * width + x];
 
-            // changes in height
-            float dx = static_cast<float>(left - right) / 255.0f;
-            float dy = static_cast<float>(down - up) / 255.0f;
-
-            float dz = 1.0f / strength;
-
-            // normalize
-            float len = std::sqrt(dx * dx + dy * dy + dz * dz);
-            dx /= len;
-            dy /= len;
-            dz /= len;
+            auto d = glm::vec3{left - right, down - up, 255.0f / strength} / 255.0f;
+            d = (glm::normalize(d) * 0.5f + 0.5f) * 255.0f;
 
             int i = (y * width + x) * 3;
-            normals[i + 0] = static_cast<uint8_t>((dx * 0.5f + 0.5f) * 255.0f);
-            normals[i + 1] = static_cast<uint8_t>((dy * 0.5f + 0.5f) * 255.0f);
-            normals[i + 2] = static_cast<uint8_t>((dz * 0.5f + 0.5f) * 255.0f);
+            normals[i + 0] = static_cast<uint8_t>(d.x);
+            normals[i + 1] = static_cast<uint8_t>(d.y);
+            normals[i + 2] = static_cast<uint8_t>(d.z);
         }
     }
 
     uint32_t texture_id = 0;
     CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
     CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
-    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, normals);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, normals.data());
     CHECKED_GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    delete[] normals;
     return texture_id;
 }
 

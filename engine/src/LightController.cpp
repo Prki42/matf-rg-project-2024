@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/LightController.hpp>
 #include <engine/graphics/OpenGL.hpp>
@@ -17,51 +18,32 @@ SpotLight &LightController::add_spot_light() {
 }
 
 void LightController::setup_shadow_maps() {
-    int needed = 0;
-    for (auto &l: m_point_lights) {
-        if (l.casts_shadows) {
-            ++needed;
-        }
+    int num_point_shadows_maps = std::ranges::count_if(m_point_lights, &PointLight::casts_shadows);
+    m_point_shadow_maps.reserve(num_point_shadows_maps);
+    for (int i = m_point_shadow_maps.size(); i < num_point_shadows_maps; ++i) {
+        auto cubemap = OpenGL::create_depth_cubemap(m_shadow_resolution);
+        m_point_shadow_maps.push_back({.fbo = OpenGL::create_depth_cubemap_fbo(cubemap), .cubemap = cubemap});
     }
 
-    while (static_cast<int>(m_shadow_maps.size()) < needed) {
-        ShadowMap sm;
-        sm.cubemap = OpenGL::create_depth_cubemap(m_shadow_resolution);
-        sm.fbo = OpenGL::create_depth_cubemap_fbo(sm.cubemap);
-        m_shadow_maps.push_back(sm);
-    }
-}
-
-void LightController::setup_spot_shadow_maps() {
-    int needed = 0;
-    for (auto &l: m_spot_lights) {
-        if (l.casts_shadows) {
-            ++needed;
-        }
-    }
-
-    while (static_cast<int>(m_spot_shadow_maps.size()) < needed) {
-        SpotShadowMap sm;
-        sm.texture = OpenGL::create_depth_texture(m_shadow_resolution);
-        sm.fbo = OpenGL::create_depth_texture_fbo(sm.texture);
-        m_spot_shadow_maps.push_back(sm);
+    int num_spot_shadows_maps = std::ranges::count_if(m_spot_lights, &SpotLight::casts_shadows);
+    m_spot_shadow_maps.reserve(num_spot_shadows_maps);
+    for (int i = m_spot_shadow_maps.size(); i < num_spot_shadows_maps; ++i) {
+        auto texture = OpenGL::create_depth_texture(m_shadow_resolution);
+        m_spot_shadow_maps.push_back({.fbo = OpenGL::create_depth_texture_fbo(texture), .texture = texture});
     }
 }
 
 void LightController::terminate() {
-    for (auto &sm: m_shadow_maps) {
-        OpenGL::delete_framebuffer(sm.fbo);
-        OpenGL::delete_texture(sm.cubemap);
+    for (auto &sm: m_point_shadow_maps) {
+        sm.destroy();
     }
     for (auto &sm: m_spot_shadow_maps) {
-        OpenGL::delete_framebuffer(sm.fbo);
-        OpenGL::delete_texture(sm.texture);
+        sm.destroy();
     }
 }
 
 void LightController::begin_draw() {
     setup_shadow_maps();
-    setup_spot_shadow_maps();
 
     auto scene = engine::core::Controller::get<SceneController>();
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
@@ -81,7 +63,7 @@ void LightController::begin_draw() {
         if (!light.casts_shadows) {
             continue;
         }
-        auto &sm = m_shadow_maps[shadow_idx++];
+        auto &sm = m_point_shadow_maps[shadow_idx++];
         glm::mat4 shadow_proj = glm::perspective(glm::radians(90.0f), aspect, near, light.shadow_far);
         glm::vec3 pos = light.position;
 
@@ -171,10 +153,10 @@ void LightController::draw() {
 }
 
 void LightController::apply(const engine::resources::Shader *shader) const {
-    for (int i = 0; i < 8; ++i) {
-        shader->set_int(std::format("pointShadowMaps[{}]", i), SHADOW_MAP_BASE_UNIT + i);
+    for (int i = 0; i < MAX_POINT_LIGHTS; ++i) {
+        shader->set_int(std::format("pointShadowMaps[{}]", i), POINT_SHADOW_MAP_BASE_UNIT + i);
     }
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < MAX_SPOT_LIGHTS; ++i) {
         shader->set_int(std::format("spotShadowMaps[{}]", i), SPOT_SHADOW_MAP_BASE_UNIT + i);
     }
 
@@ -191,8 +173,8 @@ void LightController::apply(const engine::resources::Shader *shader) const {
         shader->set_int(prefix + "castsShadows", l.casts_shadows ? 1 : 0);
         shader->set_float(prefix + "shadowFar", l.shadow_far);
 
-        if (l.casts_shadows && shadow_idx < static_cast<int>(m_shadow_maps.size())) {
-            OpenGL::bind_texture_cube_map(SHADOW_MAP_BASE_UNIT + i, m_shadow_maps[shadow_idx].cubemap);
+        if (l.casts_shadows && shadow_idx < static_cast<int>(m_point_shadow_maps.size())) {
+            OpenGL::bind_texture_cube_map(POINT_SHADOW_MAP_BASE_UNIT + i, m_point_shadow_maps[shadow_idx].cubemap);
             ++shadow_idx;
         }
     }

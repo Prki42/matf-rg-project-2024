@@ -1,3 +1,5 @@
+#include "engine/resources/Texture.hpp"
+#include <algorithm>
 #include <assimp/Importer.hpp>
 #include <assimp/material.h>
 #include <assimp/postprocess.h>
@@ -100,7 +102,7 @@ public:
     }
 
 private:
-    void process_node(const aiNode *node, aiMatrix4x4 parent_transform);
+    void process_node(const aiNode *node, const aiMatrix4x4 &parent_transform);
 
     void process_mesh(aiMesh *mesh, const aiMatrix4x4 &transform);
 
@@ -201,7 +203,7 @@ std::vector<Mesh> AssimpSceneProcessor::process_meshes() {
     return std::move(m_meshes);
 }
 
-void AssimpSceneProcessor::process_node(const aiNode *node, aiMatrix4x4 parent_transform) {
+void AssimpSceneProcessor::process_node(const aiNode *node, const aiMatrix4x4 &parent_transform) {
     aiMatrix4x4 transform = parent_transform * node->mTransformation;
     for (uint32_t i = 0; i < node->mNumMeshes; ++i) {
         auto mesh = m_scene->mMeshes[node->mMeshes[i]];
@@ -322,13 +324,10 @@ std::vector<MeshTexture> AssimpSceneProcessor::process_materials(const aiMateria
         process_material_type(textures, material, ai_texture_type);
     }
 
-    bool has_diffuse = false;
-    for (auto &mt: textures) {
-        if (mt.texture->type() == TextureType::Diffuse) {
-            has_diffuse = true;
-            break;
-        }
-    }
+    bool has_diffuse = std::ranges::any_of(textures, [](const auto &mt) {
+        return mt.texture->type() == TextureType::Diffuse;
+    });
+
     if (!has_diffuse) {
         Texture *texture = m_resources_controller->color_texture("_white_diffuse", 255, 255, 255);
         textures.insert(textures.begin(), {texture, 0});
