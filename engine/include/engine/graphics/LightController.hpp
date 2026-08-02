@@ -39,6 +39,9 @@ public:
         return "LightController";
     }
 
+    void set_custom_depth_shader(const std::string &depth_shader);
+    void set_custom_depth_spot_shader(const std::string &depth_spot_shader);
+
     PointLight &add_point_light();
     SpotLight &add_spot_light();
 
@@ -58,6 +61,7 @@ public:
     static constexpr int MAX_SPOT_LIGHTS = 4;
 
 private:
+    void initialize() override;
     void terminate() override;
     void begin_draw() override;
     void draw() override;
@@ -91,6 +95,8 @@ private:
     std::vector<SpotShadowMap> m_spot_shadow_maps;
     int m_shadow_resolution = 1024;
     bool m_draw_debug = false;
+    resources::Shader *m_depth_shader = nullptr;
+    resources::Shader *m_depth_spot_shader = nullptr;
 };
 
 }// namespace engine::graphics

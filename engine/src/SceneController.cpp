@@ -8,15 +8,15 @@ Renderable *SceneController::add_renderable(engine::resources::Model *model, con
     return m_renderables.emplace_back(std::make_unique<Renderable>(model, transform, shader)).get();
 }
 
-void SceneController::render_all(const engine::resources::Shader *fallback_shader) {
+void SceneController::render_all(const engine::resources::Shader *shader, bool allow_custom_shader) {
     for (auto &r: m_renderables) {
         if (!r->visible) {
             continue;
         }
-        auto *shader = r->shader ? r->shader : fallback_shader;
-        shader->use();
-        shader->set_mat4("model", r->transform);
-        r->model->draw(shader);
+        auto *s = (allow_custom_shader && r->shader) ? r->shader : shader;
+        s->use();
+        s->set_mat4("model", r->transform);
+        r->model->draw(s);
     }
 }
 

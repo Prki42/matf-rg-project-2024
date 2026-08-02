@@ -9,6 +9,22 @@
 
 namespace engine::graphics {
 
+void LightController::initialize() {
+    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    m_depth_shader = resources->shader("engine/depth");
+    m_depth_spot_shader = resources->shader("engine/depth_spot");
+}
+
+void LightController::set_custom_depth_shader(const std::string &depth_shader) {
+    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    m_depth_shader = resources->shader(depth_shader);
+}
+
+void LightController::set_custom_depth_spot_shader(const std::string &depth_spot_shader) {
+    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
+    m_depth_spot_shader = resources->shader(depth_spot_shader);
+}
+
 PointLight &LightController::add_point_light() {
     return m_point_lights.emplace_back();
 }
@@ -46,7 +62,6 @@ void LightController::begin_draw() {
     setup_shadow_maps();
 
     auto scene = engine::core::Controller::get<SceneController>();
-    auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
 
     uint32_t prev_fbo = OpenGL::current_framebuffer();
     int prev_viewport[4];
@@ -54,7 +69,6 @@ void LightController::begin_draw() {
 
     OpenGL::cull_front_faces();
 
-    auto depth_shader = resources->shader("engine/depth");
     float aspect = 1.0f;
     float near = 0.1f;
 
@@ -80,17 +94,16 @@ void LightController::begin_draw() {
         OpenGL::bind_framebuffer(sm.fbo);
         OpenGL::clear_depth_buffer();
 
-        depth_shader->use();
+        m_depth_shader->use();
         for (int i = 0; i < 6; ++i) {
-            depth_shader->set_mat4(std::format("shadowMatrices[{}]", i), shadow_transforms[i]);
+            m_depth_shader->set_mat4(std::format("shadowMatrices[{}]", i), shadow_transforms[i]);
         }
-        depth_shader->set_vec3("lightPos", pos);
-        depth_shader->set_float("far_plane", light.shadow_far);
+        m_depth_shader->set_vec3("lightPos", pos);
+        m_depth_shader->set_float("far_plane", light.shadow_far);
 
-        scene->render_all(depth_shader);
+        scene->render_all(m_depth_shader, false);
     }
 
-    auto depth_spot_shader = resources->shader("engine/depth_spot");
     int spot_shadow_idx = 0;
     for (auto &light: m_spot_lights) {
         if (!light.casts_shadows) {
@@ -112,10 +125,10 @@ void LightController::begin_draw() {
         OpenGL::bind_framebuffer(sm.fbo);
         OpenGL::clear_depth_buffer();
 
-        depth_spot_shader->use();
-        depth_spot_shader->set_mat4("lightSpaceMatrix", sm.light_space_matrix);
+        m_depth_spot_shader->use();
+        m_depth_spot_shader->set_mat4("lightSpaceMatrix", sm.light_space_matrix);
 
-        scene->render_all(depth_spot_shader);
+        scene->render_all(m_depth_spot_shader, false);
     }
 
     OpenGL::cull_back_faces();

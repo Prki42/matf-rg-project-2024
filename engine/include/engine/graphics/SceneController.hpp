@@ -24,7 +24,7 @@ public:
 
     Renderable *add_renderable(engine::resources::Model *model, const glm::mat4 &transform = glm::mat4(1.0f), engine::resources::Shader *shader = nullptr);
 
-    void render_all(const engine::resources::Shader *fallback_shader);
+    void render_all(const engine::resources::Shader *fallback_shader, bool allow_custom_shader = true);
 
     std::vector<std::unique_ptr<Renderable>> &renderables() { return m_renderables; }
     const std::vector<std::unique_ptr<Renderable>> &renderables() const { return m_renderables; }
