@@ -1,8 +1,6 @@
-
 // clang-format off
 #include <glad/glad.h>
 // clang-format on
-#include <array>
 #include <engine/graphics/OpenGL.hpp>
 #include <engine/resources/Shader.hpp>
 #include <engine/resources/ShaderCompiler.hpp>
@@ -22,21 +20,22 @@ int32_t OpenGL::shader_type_to_opengl_type(resources::ShaderType type) {
     }
 }
 
-uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_uvs) {
+uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_uvs, bool srgb) {
     uint32_t texture_id = 0;
     CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
 
     int32_t width, height, nr_components;
     stbi_set_flip_vertically_on_load(flip_uvs);
-    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 0);
+    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 4);
     defer {
         stbi_image_free(data);
     };
     if (data) {
-        int32_t format = texture_format(nr_components);
+        int32_t format = GL_RGBA;
+        int32_t internal_format = srgb ? GL_SRGB8_ALPHA8 : GL_RGBA;
 
         CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
-        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         CHECKED_GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
 
         CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -50,9 +49,65 @@ uint32_t OpenGL::generate_texture(const std::filesystem::path &path, bool flip_u
     return texture_id;
 }
 
+uint32_t OpenGL::generate_normal_from_height(const std::filesystem::path &path, bool flip_uvs, float strength) {
+    int32_t width, height, nr_components;
+    stbi_set_flip_vertically_on_load(flip_uvs);
+    uint8_t *data = stbi_load(path.c_str(), &width, &height, &nr_components, 1);
+    defer {
+        stbi_image_free(data);
+    };
+    if (!data) {
+        throw util::EngineError(util::EngineError::Type::AssetLoadingError,
+                                std::format("Failed to load height map {}", path.string()));
+    }
+
+    std::vector<uint8_t> normals(width * height * 3);
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // height values around (x,y)
+            int left = data[y * width + ((x - 1 + width) % width)];
+            int right = data[y * width + ((x + 1) % width)];
+            int down = data[((y - 1 + height) % height) * width + x];
+            int up = data[((y + 1) % height) * width + x];
+
+            auto d = glm::vec3{left - right, down - up, 255.0f / strength} / 255.0f;
+            d = (glm::normalize(d) * 0.5f + 0.5f) * 255.0f;
+
+            int i = (y * width + x) * 3;
+            normals[i + 0] = static_cast<uint8_t>(d.x);
+            normals[i + 1] = static_cast<uint8_t>(d.y);
+            normals[i + 2] = static_cast<uint8_t>(d.z);
+        }
+    }
+
+    uint32_t texture_id = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, normals.data());
+    CHECKED_GL_CALL(glGenerateMipmap, GL_TEXTURE_2D);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return texture_id;
+}
+
+uint32_t OpenGL::generate_color_texture(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    uint32_t texture_id = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture_id);
+    uint8_t pixels[4] = {r, g, b, a};
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture_id);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    return texture_id;
+}
+
 int32_t OpenGL::texture_format(int32_t number_of_channels) {
     switch (number_of_channels) {
         case 1: return GL_RED;
+        case 2: return GL_RG;
         case 3: return GL_RGB;
         case 4: return GL_RGBA;
         default: RG_SHOULD_NOT_REACH_HERE("Unknown channels {}", number_of_channels);
@@ -177,6 +232,209 @@ void OpenGL::clear_buffers() {
     CHECKED_GL_CALL(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+void OpenGL::clear_depth_buffer() {
+    CHECKED_GL_CALL(glClear, GL_DEPTH_BUFFER_BIT);
+}
+
+uint32_t OpenGL::create_depth_cubemap(int resolution) {
+    uint32_t texture = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_CUBE_MAP, texture);
+    for (int i = 0; i < 6; ++i) {
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                        resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *) 0);
+    }
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    return texture;
+}
+
+uint32_t OpenGL::create_depth_cubemap_fbo(uint32_t cubemap_texture) {
+    uint32_t fbo = 0;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+    CHECKED_GL_CALL(glFramebufferTexture, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubemap_texture, 0);
+    CHECKED_GL_CALL(glDrawBuffer, GL_NONE);
+    CHECKED_GL_CALL(glReadBuffer, GL_NONE);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fbo;
+}
+
+void OpenGL::bind_framebuffer(uint32_t fbo) {
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+}
+
+uint32_t OpenGL::current_framebuffer() {
+    int fbo = 0;
+    CHECKED_GL_CALL(glGetIntegerv, GL_FRAMEBUFFER_BINDING, &fbo);
+    return static_cast<uint32_t>(fbo);
+}
+
+void OpenGL::set_viewport(int x, int y, int width, int height) {
+    CHECKED_GL_CALL(glViewport, x, y, width, height);
+}
+
+void OpenGL::current_viewport(int out[4]) {
+    CHECKED_GL_CALL(glGetIntegerv, GL_VIEWPORT, out);
+}
+
+void OpenGL::bind_texture_cube_map(uint32_t unit, uint32_t texture) {
+    CHECKED_GL_CALL(glActiveTexture, GL_TEXTURE0 + unit);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_CUBE_MAP, texture);
+}
+
+uint32_t OpenGL::create_depth_texture(int resolution) {
+    uint32_t texture = 0;
+    CHECKED_GL_CALL(glGenTextures, 1, &texture);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
+    CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                    resolution, resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void *) 0);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    CHECKED_GL_CALL(glTexParameterfv, GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+    return texture;
+}
+
+uint32_t OpenGL::create_depth_texture_fbo(uint32_t depth_texture) {
+    uint32_t fbo = 0;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fbo);
+    CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_texture, 0);
+    CHECKED_GL_CALL(glDrawBuffer, GL_NONE);
+    CHECKED_GL_CALL(glReadBuffer, GL_NONE);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fbo;
+}
+
+void OpenGL::bind_texture_2d(uint32_t unit, uint32_t texture) {
+    CHECKED_GL_CALL(glActiveTexture, GL_TEXTURE0 + unit);
+    CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, texture);
+}
+
+void OpenGL::delete_framebuffer(uint32_t fbo) {
+    if (fbo) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 1, &fbo);
+    }
+}
+
+void OpenGL::delete_texture(uint32_t texture) {
+    if (texture) {
+        CHECKED_GL_CALL(glDeleteTextures, 1, &texture);
+    }
+}
+
+void OpenGL::delete_vao(uint32_t vao) {
+    if (vao) {
+        CHECKED_GL_CALL(glDeleteVertexArrays, 1, &vao);
+    }
+}
+
+void OpenGL::cull_front_faces() {
+    CHECKED_GL_CALL(glEnable, GL_CULL_FACE);
+    CHECKED_GL_CALL(glCullFace, GL_FRONT);
+}
+
+void OpenGL::cull_back_faces() {
+    CHECKED_GL_CALL(glCullFace, GL_BACK);
+    CHECKED_GL_CALL(glDisable, GL_CULL_FACE);
+}
+
+OpenGL::HdrFramebuffer OpenGL::create_hdr_framebuffer(int width, int height) {
+    HdrFramebuffer fb;
+    CHECKED_GL_CALL(glGenFramebuffers, 1, &fb.fbo);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, fb.fbo);
+    CHECKED_GL_CALL(glGenTextures, 2, fb.color_buffers);
+    for (int i = 0; i < 2; i++) {
+        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, fb.color_buffers[i]);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, (void *) 0);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, fb.color_buffers[i], 0);
+    }
+    CHECKED_GL_CALL(glGenRenderbuffers, 1, &fb.depth_rbo);
+    CHECKED_GL_CALL(glBindRenderbuffer, GL_RENDERBUFFER, fb.depth_rbo);
+    CHECKED_GL_CALL(glRenderbufferStorage, GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+    CHECKED_GL_CALL(glFramebufferRenderbuffer, GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, fb.depth_rbo);
+    unsigned int attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    CHECKED_GL_CALL(glDrawBuffers, 2, attachments);
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return fb;
+}
+
+void OpenGL::destroy_hdr_framebuffer(HdrFramebuffer &fb) {
+    if (fb.fbo) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 1, &fb.fbo);
+        CHECKED_GL_CALL(glDeleteTextures, 2, fb.color_buffers);
+        CHECKED_GL_CALL(glDeleteRenderbuffers, 1, &fb.depth_rbo);
+        fb = {};
+    }
+}
+
+OpenGL::PingPongBuffers OpenGL::create_ping_pong_buffers(int width, int height) {
+    PingPongBuffers pp;
+    CHECKED_GL_CALL(glGenFramebuffers, 2, pp.fbo);
+    CHECKED_GL_CALL(glGenTextures, 2, pp.textures);
+    for (int i = 0; i < 2; i++) {
+        CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, pp.fbo[i]);
+        CHECKED_GL_CALL(glBindTexture, GL_TEXTURE_2D, pp.textures[i]);
+        CHECKED_GL_CALL(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, (void *) 0);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        CHECKED_GL_CALL(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pp.textures[i], 0);
+    }
+    CHECKED_GL_CALL(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+    return pp;
+}
+
+void OpenGL::destroy_ping_pong_buffers(PingPongBuffers &pp) {
+    if (pp.fbo[0]) {
+        CHECKED_GL_CALL(glDeleteFramebuffers, 2, pp.fbo);
+        CHECKED_GL_CALL(glDeleteTextures, 2, pp.textures);
+        pp = {};
+    }
+}
+
+uint32_t OpenGL::create_screen_quad() {
+    // clang-format off
+    float vertices[] = {
+        -1.0f,  1.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+         1.0f, -1.0f, 1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f, 1.0f,
+         1.0f, -1.0f, 1.0f, 0.0f,
+         1.0f,  1.0f, 1.0f, 1.0f,
+    };
+    // clang-format on
+    uint32_t vao, vbo;
+    CHECKED_GL_CALL(glGenVertexArrays, 1, &vao);
+    CHECKED_GL_CALL(glGenBuffers, 1, &vbo);
+    CHECKED_GL_CALL(glBindVertexArray, vao);
+    CHECKED_GL_CALL(glBindBuffer, GL_ARRAY_BUFFER, vbo);
+    CHECKED_GL_CALL(glBufferData, GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    CHECKED_GL_CALL(glEnableVertexAttribArray, 0);
+    CHECKED_GL_CALL(glVertexAttribPointer, 0, 2, GL_FLOAT, GL_FALSE, 4 * static_cast<int>(sizeof(float)), (void *) 0);
+    CHECKED_GL_CALL(glEnableVertexAttribArray, 1);
+    CHECKED_GL_CALL(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, 4 * static_cast<int>(sizeof(float)), (void *) (2 * sizeof(float)));
+    CHECKED_GL_CALL(glBindVertexArray, 0);
+    return vao;
+}
+
+void OpenGL::draw_screen_quad(uint32_t vao) {
+    CHECKED_GL_CALL(glBindVertexArray, vao);
+    CHECKED_GL_CALL(glDrawArrays, GL_TRIANGLES, 0, 6);
+    CHECKED_GL_CALL(glBindVertexArray, 0);
+}
+
 uint32_t face_index(std::string_view name) {
     if (name == "right") {
         return 0;
@@ -194,15 +452,6 @@ uint32_t face_index(std::string_view name) {
         RG_SHOULD_NOT_REACH_HERE(
                 "Unknown face name: {}. The cubemap textures should be named: right, left, top, bottom, front, back; by their respective faces in the cubemap. The extension of the image file is ignored.",
                 name);
-    }
-}
-
-int32_t stbi_number_of_channels_to_gl_format(int32_t number_of_channels) {
-    switch (number_of_channels) {
-        case 1: return GL_RED;
-        case 3: return GL_RGB;
-        case 4: return GL_RGBA;
-        default: RG_SHOULD_NOT_REACH_HERE("Unknown channels {}", number_of_channels);
     }
 }
 

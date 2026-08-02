@@ -78,7 +78,11 @@ public:
     * @param flip_uvs flip_uvs on load.
     * @returns OpenGL id of a texture object.
     */
-    static uint32_t generate_texture(const std::filesystem::path &path, bool flip_uvs);
+    static uint32_t generate_texture(const std::filesystem::path &path, bool flip_uvs, bool srgb = false);
+
+    static uint32_t generate_color_texture(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255);
+
+    static uint32_t generate_normal_from_height(const std::filesystem::path &path, bool flip_uvs, float strength = 4.0f);
 
     /**
     * @brief Get texture format for a `number_of_channels`.
@@ -133,6 +137,61 @@ public:
     * @brief Clears GL_DEPTH_BUFFER_BIT, GL_COLOR_BUFFER_BIT, and GL_STENCIL_BUFFER_BIT.
     */
     static void clear_buffers();
+
+    static void clear_depth_buffer();
+
+    static uint32_t create_depth_cubemap(int resolution);
+
+    static uint32_t create_depth_cubemap_fbo(uint32_t cubemap_texture);
+
+    static void bind_framebuffer(uint32_t fbo);
+
+    static uint32_t current_framebuffer();
+
+    static void set_viewport(int x, int y, int width, int height);
+
+    static void current_viewport(int out[4]);
+
+    static void bind_texture_cube_map(uint32_t unit, uint32_t texture);
+
+    static uint32_t create_depth_texture(int resolution);
+
+    static uint32_t create_depth_texture_fbo(uint32_t depth_texture);
+
+    static void bind_texture_2d(uint32_t unit, uint32_t texture);
+
+    static void delete_framebuffer(uint32_t fbo);
+
+    static void delete_texture(uint32_t texture);
+
+    static void delete_vao(uint32_t vao);
+
+    static void cull_front_faces();
+
+    static void cull_back_faces();
+
+    struct HdrFramebuffer {
+        uint32_t fbo = 0;
+        uint32_t color_buffers[2] = {0, 0};
+        uint32_t depth_rbo = 0;
+    };
+
+    static HdrFramebuffer create_hdr_framebuffer(int width, int height);
+
+    static void destroy_hdr_framebuffer(HdrFramebuffer &fb);
+
+    struct PingPongBuffers {
+        uint32_t fbo[2] = {0, 0};
+        uint32_t textures[2] = {0, 0};
+    };
+
+    static PingPongBuffers create_ping_pong_buffers(int width, int height);
+
+    static void destroy_ping_pong_buffers(PingPongBuffers &pp);
+
+    static uint32_t create_screen_quad();
+
+    static void draw_screen_quad(uint32_t vao);
 
     /**
     * @brief Retrieve the shader compilation error log message.

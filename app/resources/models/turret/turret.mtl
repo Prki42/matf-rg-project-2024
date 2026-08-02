@@ -1,0 +1,125 @@
+# Blender 5.2.0 LTS MTL File: 'Turrets.blend'
+# www.blender.org
+
+newmtl bot_eye_ring_lights
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd bot_eye_ring_lights.jpg
+
+newmtl eggbot_frame
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd eggbot_frame.jpg
+
+newmtl eggbot_shell
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd eggbot_shell.jpg
+
+newmtl eyelid_dark
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.006555 0.006555 0.006555
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl iris
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+
+newmtl models/npcs/turret/turret_casing.001
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd turret_casing.png
+map_Bump -bm 1.000000 turret_01_normal.png
+
+newmtl models/npcs/turret/turret_casing_broken
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd turret_broken.png
+map_Bump -bm 1.000000 turret_01_normal.png
+
+newmtl models/npcs/turret/turret_casing_rusted
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd turret_casing_rusted.png
+map_Bump -bm 1.000000 turret_01_normal.png
+
+newmtl models/npcs/turret/turret_eye
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.751247 0.774915 0.679878
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl models/npcs/turret/turret_frame01
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd turret_frame01.jpg
+
+newmtl models/npcs/turret/turret_frame02
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd turret_frame02.jpg
+
+newmtl models\player\coop_bots\bot_eye_lights
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd bot_eye_ring_lights.jpg
+map_Ke bot_eye_ring_lights.jpg

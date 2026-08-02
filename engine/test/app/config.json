@@ -4,6 +4,10 @@
       "backpack": {
         "path": "backpack/backpack.obj",
         "flip_uvs": false
+      },
+      "backpack_gltf": {
+        "path": "backpack_gltf/scene.gltf",
+        "flip_uvs": true
       }
     }
   },

@@ -53,7 +53,7 @@ void MainController::draw() {
 }
 
 void MainController::end_draw() {
-    engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
+    // engine::core::Controller::get<engine::platform::PlatformController>()->swap_buffers();
 }
 
 void MainController::draw_backpack() {
@@ -65,6 +65,16 @@ void MainController::draw_backpack() {
     shader->set_mat4("view", graphics->camera()->view_matrix());
     shader->set_mat4("model", scale(glm::mat4(1.0f), glm::vec3(m_backpack_scale)));
     backpack->draw(shader);
+
+    auto backpack_gltf = engine::core::Controller::get<engine::resources::ResourcesController>()->model("backpack_gltf");
+    shader->set_mat4("projection", graphics->projection_matrix());
+    shader->set_mat4("view", graphics->camera()->view_matrix());
+    auto model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(5.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(0.01));
+    shader->set_mat4("model", model);
+
+    backpack_gltf->draw(shader);
 }
 
 void MainController::draw_skybox() {

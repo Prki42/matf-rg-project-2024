@@ -45,7 +45,8 @@ public:
     Texture *texture(const std::string &name,
                      const std::filesystem::path &path = "",
                      TextureType texture_type = TextureType::Regular,
-                     bool flip_uvs = false);
+                     bool flip_uvs = false,
+                     bool srgb = false);
 
     /**
     * @brief Retrieves the @ref Skybox with a given name. You are not supposed to call `delete` on this pointer.
@@ -68,6 +69,10 @@ public:
     * @returns The pointer to the @ref Shader associated with the `name`.
     */
     Shader *shader(const std::string &name, const std::filesystem::path &path = "");
+
+    Texture *color_texture(const std::string &name, uint8_t r, uint8_t g, uint8_t b, TextureType type = TextureType::Diffuse);
+
+    Texture *normal_from_height(const std::string &name, const std::filesystem::path &path, bool flip_uvs = false, float strength = 4.0f);
 
 private:
     /**
@@ -99,6 +104,8 @@ private:
     * @brief Loads and compile all the shaders from the "resources/shaders" directory. Called during @ref ResourcesController::initialize.
     */
     void load_shaders();
+
+    void load_engine_shaders();
 
     /**
     * @brief A hashmap of all the loaded @ref Model.

@@ -11,7 +11,7 @@ std::string_view texture_type_to_string(TextureType type) {
         case TextureType::Diffuse: return "Diffuse";
         case TextureType::Specular: return "Specular";
         case TextureType::Normal: return "Normal";
-        case TextureType::Height: return "Height";
+        case TextureType::Emissive: return "Emissive";
         default: RG_SHOULD_NOT_REACH_HERE("Unknown TextureType");
     }
 }
@@ -28,10 +28,11 @@ void Texture::bind(int32_t sampler) {
 
 std::string_view Texture::uniform_name_convention(TextureType type) {
     switch (type) {
+        case TextureType::Regular: return "texture";
         case TextureType::Diffuse: return "texture_diffuse";
         case TextureType::Specular: return "texture_specular";
         case TextureType::Normal: return "texture_normal";
-        case TextureType::Height: return "texture_height";
+        case TextureType::Emissive: return "texture_emissive";
         default: RG_SHOULD_NOT_REACH_HERE("Unhandled TextureType");
     }
 }

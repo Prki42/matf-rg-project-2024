@@ -21,7 +21,7 @@ enum class TextureType {
     Diffuse,
     Specular,
     Normal,
-    Height,
+    Emissive,
 };
 
 /**
